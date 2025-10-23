@@ -75,3 +75,8 @@ def dashboard_reciclador(request):
 def dashboard_gerador(request):
     return render(request, 'reciclAI/dashboard_gerador.html')
 
+def logout(request):
+
+    auth.logout(request)
+    return redirect('')
+
