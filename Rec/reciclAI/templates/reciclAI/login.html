@@ -5,7 +5,7 @@
 
     {% block content %}
     
-        <h2> Faça o seu cadastro de usuário. </h2>
+        <h2> Faça o seu login </h2>
 
         <hr>
 
@@ -13,7 +13,7 @@
 
         {% csrf_token %}
 
-        {{cadastro_form.as_p}}
+        {{LoginForm.as_p}}
 
         <input type="submit" value="Submeter"/>
 
