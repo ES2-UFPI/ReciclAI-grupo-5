@@ -9,5 +9,6 @@ urlpatterns = [
     path('dashboard-reciclador/', views.dashboard_reciclador,name='reciclador'),
     path('dashboard-gerador/', views.dashboard_reciclador,name='gerador'),
     path('logout/', views.logout,name='logout'),
+    path('registro-material/', views.registrar_material,name='registro-material'),
 ]
 
