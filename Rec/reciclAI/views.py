@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
-from .forms import CustomUserCreationForm, LoginForm
+from .forms import CustomUserCreationForm, LoginForm, RegistroMaterialForm
 from .models import UserProfile 
 from django.contrib.auth import authenticate, login,logout
 from django.contrib.auth.models import auth
@@ -29,7 +29,7 @@ def cadastro(request):
           
             )
             
-            return redirect('homepage')        
+            return redirect('')        
         
     else:
         form = CustomUserCreationForm()
@@ -79,4 +79,22 @@ def logout(request):
 
     auth.logout(request)
     return redirect('')
+
+@login_required(login_url='login')
+def registrar_material(request):
+    
+    if request.method == 'POST':
+        form = RegistroMaterialForm(request.POST)
+        if form.is_valid():
+            registro_material = form.save(commit=False) 
+            registro_material.usuario = request.user 
+        
+            registro_material.save() 
+            return redirect('gerador') 
+    
+    else:
+        form = RegistroMaterialForm()
+
+    context = {'material_form': form}
+    return render(request, 'reciclAI/registro_material.html', context)
 

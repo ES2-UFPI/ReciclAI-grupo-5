@@ -84,7 +84,7 @@ class RegistroMaterial(models.Model):
     class Meta:
         verbose_name = 'Registro de Material'
         verbose_name_plural = 'Registros de Materiais'
-        ordering = ['-data_registro'] # Ordena pelo mais recente primeiro
+        ordering = ['-data_registro'] 
 
     def __str__(self):
         return f'{self.tipo_material} - {self.quantidade} - Status: {self.status} (ID: {self.id})'

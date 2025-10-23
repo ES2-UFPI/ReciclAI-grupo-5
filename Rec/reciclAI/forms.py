@@ -1,10 +1,10 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
-from django.forms.widgets import PasswordInput, TextInput
+from django.forms.widgets import PasswordInput, TextInput, Textarea
 from django.forms import TextInput, RadioSelect
 
-from .models import UserProfile 
+from .models import UserProfile, RegistroMaterial
 
 class CustomUserCreationForm(UserCreationForm):
     
@@ -40,4 +40,25 @@ class CustomUserCreationForm(UserCreationForm):
 class LoginForm(AuthenticationForm):
 
     username = forms.CharField(widget=TextInput())
-    password = forms.CharField(widget=PasswordInput())        
+    password = forms.CharField(widget=PasswordInput())   
+
+
+class RegistroMaterialForm(forms.ModelForm):
+    quantidade = forms.DecimalField(
+        label='Quantidade',
+        max_digits=10, 
+        decimal_places=2,
+        widget=TextInput(attrs={'placeholder': 'Ex: 50.50 (em kg, litros, etc.)', 'class': 'form-control'}),
+        help_text='Insira a quantidade do material.'
+    )
+
+    class Meta:
+        model = RegistroMaterial
+        
+        fields = [
+            'tipo_material', 
+            'quantidade', 
+            'observacao', 
+        ]
+        
+       
