@@ -1,0 +1,19 @@
+{% extends 'reciclAI/base.html' %}
+
+
+<html>
+
+    {% block content %}
+    
+    <a href="{% url 'registro-material' %}" > Registrar material </a>
+
+    &nbsp;
+    
+    <a href="{% url 'logout' %}" > Logout </a>
+    
+    <h2> Suas solicitações: </h2>
+
+    {% endblock %}
+
+
+</html>

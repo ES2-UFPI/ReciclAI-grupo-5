@@ -1,0 +1,25 @@
+{% extends 'reciclAI/base.html' %}
+
+
+<html>
+
+    {% block content %}
+    
+        <h2> Registre o material </h2>
+
+        <hr>
+
+        <form method="POST" autocomplete="off" enctype="multipart/form-data">
+
+        {% csrf_token %}
+
+        {{ material_form.as_p }}
+
+        <input type="submit" value="Registrar"/>
+
+        </form>
+    
+    {% endblock %}
+
+
+</html>

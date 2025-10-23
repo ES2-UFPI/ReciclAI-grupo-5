@@ -1,0 +1,25 @@
+{% extends 'reciclAI/base.html' %}
+
+
+<html>
+
+    {% block content %}
+    
+        <h2> Faça o seu login </h2>
+
+        <hr>
+
+        <form method="POST" autocomplete="off" enctype="'multipart/form-data">
+
+        {% csrf_token %}
+
+        {{LoginForm.as_p}}
+
+        <input type="submit" value="Submeter"/>
+
+        </form>
+    
+    {% endblock %}
+
+
+</html>
