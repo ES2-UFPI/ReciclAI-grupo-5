@@ -1,21 +1,9 @@
-{% extends 'reciclAI/base.html' %}
+{% extends 'reciclAI/base.html' %} {% block content %}
+<h2>Seja bem-vindo!</h2>
 
+<a href="{% url 'cadastro' %}">Sign in</a>
+&nbsp;
+<a href="{% url 'login' %}">Login</a>
 
-<html>
-
-    {% block content %}
-    
-    <h2> Seja bem vindo! </h2>
-
-    <a href="{% url 'cadastro' %}" > Sign in </a>
-
-    &nbsp;
-
-    <a href="{% url 'login' %}" > Login </a>    
-
-    <p> {{frase}} </p>
-    
-    {% endblock %}
-
-
-</html>
+<p>{{ frase }}</p>
+{% endblock %}

@@ -1,25 +1,7 @@
-{% extends 'reciclAI/base.html' %}
-
-
-<html>
-
-    {% block content %}
-    
-        <h2> Faça o seu cadastro de usuário. </h2>
-
-        <hr>
-
-        <form method="POST" autocomplete="off" enctype="'multipart/form-data">
-
-        {% csrf_token %}
-
-        {{cadastro_form.as_p}}
-
-        <input type="submit" value="Submeter"/>
-
-        </form>
-    
-    {% endblock %}
-
-
-</html>
+{% extends 'reciclAI/base.html' %} {% block content %}
+<h2>Crie sua conta</h2>
+<form method="POST" autocomplete="off">
+  {% csrf_token %} {{ cadastro_form.as_p }}
+  <input type="submit" value="Cadastrar" />
+</form>
+{% endblock %}>
