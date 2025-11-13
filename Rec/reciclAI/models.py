@@ -38,19 +38,6 @@ class UserProfile(models.Model):
         )
 
 
-@receiver(post_save, sender=User)
-def criar_profile_usuario(sender, instance, created, **kwargs):
-    """Cria um UserProfile vazio (campos opcionais) quando um User é criado.
-
-    Observação: `cpf_cnpj` e `telefone` foram tornados opcionais para permitir
-    a criação automática do perfil. Campos obrigatórios devem ser preenchidos
-    no fluxo de cadastro (formulário).
-    """
-    if created:
-        # só criar se não existir (por segurança)
-        UserProfile.objects.get_or_create(user=instance)
-
-
 class RegistroMaterial(models.Model):
 
     STATUS_CHOICES = (

@@ -16,21 +16,23 @@ def cadastro(request):
         form = CustomUserCreationForm(request.POST)
 
         if form.is_valid():
-
+            # Cria o usuário
             user = form.save()
 
+            # Captura os dados extras do formulário
             cpf_cnpj_data = form.cleaned_data.get("cpf_cnpj")
             telefone_data = form.cleaned_data.get("telefone")
+            tipo_usuario_data = form.cleaned_data.get("tipo_usuario") or "GERADOR"
 
-            tipo_usuario_data = form.cleaned_data.get("tipo_usuario", None)
-            profile = UserProfile.objects.create(
-                user=user,
-                cpf_cnpj=cpf_cnpj_data,
-                telefone=telefone_data,
-                tipo_usuario=tipo_usuario_data if tipo_usuario_data else "GERADOR",
-            )
+            # Atualiza o UserProfile criado automaticamente pelo sinal
+            profile, created = UserProfile.objects.get_or_create(user=user)
+
+            profile.cpf_cnpj = cpf_cnpj_data
+            profile.telefone = telefone_data
+            profile.tipo_usuario = tipo_usuario_data
+            profile.save()
+
             return redirect("login")
-
     else:
         form = CustomUserCreationForm()
 
@@ -52,7 +54,7 @@ def login(request):
             if user is not None:
                 auth.login(request, user)
 
-                profile = user.profile
+                profile, created = UserProfile.objects.get_or_create(user=user)
                 tipo = profile.tipo_usuario
 
                 if tipo == "RECICLADOR":
