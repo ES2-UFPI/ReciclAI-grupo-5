@@ -63,7 +63,7 @@ def login(request):
     else:
         form = LoginForm()
 
-    context = {"LoginForm": form}
+    context = {"login_form": form}
     return render(request, "reciclAI/login.html", context)
 
 
