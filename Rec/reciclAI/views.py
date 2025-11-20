@@ -1,35 +1,56 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, HttpResponseForbidden
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
 from django.db import transaction
 from django.db.models import F
 from django.contrib import messages
 from .models import Residue, Collection, Reward, Profile, UserReward
-from .forms import CollectionStatusForm, ResidueForm
+from .forms import CustomUserCreationForm, CollectionStatusForm, ResidueForm
 
 
-def index(request):
-    return render(request, "reciclAI/index.html")
+def public_index(request):
+    """
+    Landing page pública para usuários não autenticados.
+    """
+    if request.user.is_authenticated:
+        return redirect("reciclAI:dashboard")
+    return render(request, "reciclAI/public_index.html")
+
+
+@login_required
+def dashboard(request):
+    """
+    Redireciona o usuário para a página inicial correta com base no seu perfil.
+    """
+    user_type = request.user.profile.user_type
+    if user_type == "C":
+        return redirect("reciclAI:collection_status")
+    elif user_type == "L":
+        return redirect("reciclAI:available_collections")
+    elif user_type == "R":
+        return redirect("reciclAI:recycler_received")
+    else:
+        # Fallback para a página de login se não houver perfil
+        return redirect("login")
 
 
 def signup(request):
     if request.method == "POST":
-        form = UserCreationForm(request.POST)
+        form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
             login(request, user)
-            # A criação do Profile agora é feita por um signal.
-            return redirect("reciclAI:index")
+            messages.success(request, "Cadastro realizado com sucesso! Bem-vindo(a).")
+            return redirect("reciclAI:dashboard")
     else:
-        form = UserCreationForm()
+        form = CustomUserCreationForm()
     return render(request, "registration/signup.html", {"form": form})
 
 
+# ... (restante das views permanece o mesmo)
 @login_required
 def residue_create(request):
-    # Adicionar verificação de perfil de Cidadão
     if request.user.profile.user_type != "C":
         return HttpResponseForbidden("Apenas cidadãos podem registrar resíduos.")
     if request.method == "POST":

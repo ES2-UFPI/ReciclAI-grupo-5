@@ -1,0 +1,20 @@
+{% extends 'base.html' %} {% block title %}Bem-vindo ao Reciclaí{% endblock %} {% block content %}
+<div class="container text-center mt-5">
+  <div class="jumbotron">
+    <h1 class="display-4">Reciclaí</h1>
+    <p class="lead">Conectando quem recicla com quem coleta.</p>
+    <hr class="my-4" />
+    <p>
+      Nossa plataforma simplifica o processo de coleta seletiva, incentivando cidadãos com um
+      sistema de pontos e recompensas, otimizando a rota de coletores e gerenciando o recebimento de
+      materiais para recicladoras.
+    </p>
+    <div class="mt-4">
+      <a class="btn btn-primary btn-lg" href="{% url 'reciclAI:signup' %}" role="button">
+        Cadastre-se Agora
+      </a>
+      <a class="btn btn-secondary btn-lg" href="{% url 'login' %}" role="button">Fazer Login</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
