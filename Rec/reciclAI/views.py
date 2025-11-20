@@ -20,7 +20,7 @@ def signup(request):
         if form.is_valid():
             user = form.save()
             login(request, user)
-            Profile.objects.create(user=user, user_type="C")
+            # A criação do Profile agora é feita por um signal.
             return redirect("reciclAI:index")
     else:
         form = UserCreationForm()
