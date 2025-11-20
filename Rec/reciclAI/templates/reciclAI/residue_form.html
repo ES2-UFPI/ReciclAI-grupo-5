@@ -1,11 +1,7 @@
-{% extends 'base.html' %} {% block title %}Cadastrar Resíduo{% endblock %} {% block content %}
-<div class="card">
-  <div class="card-body">
-    <h1 class="card-title">Cadastrar Resíduo</h1>
-    <form method="post">
-      {% csrf_token %} {{ form.as_p }}
-      <button type="submit" class="btn btn-primary">Salvar</button>
-    </form>
-  </div>
-</div>
+{% extends 'base.html' %} {% block content %}
+<h2>Cadastrar Novo Resíduo</h2>
+<form method="post">
+  {% csrf_token %} {{ form.as_p }}
+  <button type="submit">Cadastrar</button>
+</form>
 {% endblock %}

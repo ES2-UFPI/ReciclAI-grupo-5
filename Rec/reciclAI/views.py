@@ -5,7 +5,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
 from django.db.models import F
 from .models import Residue, Collection, Reward, Profile, UserReward
-from .forms import CollectionStatusForm
+from .forms import CollectionStatusForm, ResidueForm
 
 
 def index(request):
@@ -32,20 +32,35 @@ def signup(request):
 
 @login_required
 def residue_create(request):
-    # Lógica para criar resíduo
-    return HttpResponse("<h1>Cidadão: Cadastrar Resíduo</h1>")
+    if request.method == "POST":
+        form = ResidueForm(request.POST)
+        if form.is_valid():
+            residue = form.save(commit=False)
+            residue.citizen = request.user
+            residue.save()
+            # Automatically create a collection request
+            Collection.objects.create(residue=residue, status="S")
+            return redirect("reciclAI:collection_status")
+    else:
+        form = ResidueForm()
+    return render(request, "reciclAI/residue_form.html", {"form": form})
 
 
 @login_required
 def collection_request(request):
-    # Lógica para solicitar coleta
-    return HttpResponse("<h1>Cidadão: Solicitar Coleta</h1>")
+    # This view might be deprecated if collection is created with residue.
+    # For now, it can be used to show residues awaiting collection.
+    residues = Residue.objects.filter(citizen=request.user, status="A")
+    return render(request, "reciclAI/collection_request.html", {"residues": residues})
 
 
 @login_required
 def collection_status(request):
-    # Lógica para acompanhar o status da coleta
-    return HttpResponse("<h1>Cidadão: Acompanhar Status da Coleta</h1>")
+    # Shows the status of all collections for the logged-in citizen
+    collections = Collection.objects.filter(residue__citizen=request.user)
+    return render(
+        request, "reciclAI/collection_status.html", {"collections": collections}
+    )
 
 
 @login_required
@@ -82,19 +97,26 @@ def redeem_reward(request, reward_id):
 
 @login_required
 def available_collections(request):
-    # Lógica para visualizar coletas disponíveis
-    return HttpResponse("<h1>Coletor: Coletas Disponíveis</h1>")
+    # Shows collections that are "Solicitada" (Requested)
+    collections = Collection.objects.filter(status="S")
+    return render(
+        request, "reciclAI/available_collections.html", {"collections": collections}
+    )
 
 
 @login_required
 def accept_collection(request, collection_id):
-    # Lógica para aceitar coleta
-    return HttpResponse(f"<h1>Coletor: Aceitar Coleta {collection_id}</h1>")
+    collection = get_object_or_404(Collection, id=collection_id)
+    # Assign the collection to the current user (collector)
+    collection.collector = request.user
+    collection.status = "A"  # "Atribuída" (Assigned)
+    collection.save()
+    return redirect("reciclAI:available_collections")
 
 
 @login_required
 def update_collection_status(request, collection_id):
-    collection = get_object_or_404(Collection, id=collection_id)
+    collection = get_object_or_404(Collection, id=collection_id, collector=request.user)
     if request.method == "POST":
         form = CollectionStatusForm(request.POST, instance=collection)
         if form.is_valid():
@@ -114,21 +136,23 @@ def update_collection_status(request, collection_id):
 
 @login_required
 def recycler_received(request):
-    # Lógica para visualizar resíduos recebidos
-    return HttpResponse("<h1>Recicladora: Resíduos Recebidos</h1>")
+    # Shows collections that are "Entregue" (Delivered)
+    collections = Collection.objects.filter(status="N")
+    return render(
+        request, "reciclAI/recycler_received.html", {"collections": collections}
+    )
 
 
 @login_required
 def recycler_process(request, residue_id):
     residue = get_object_or_404(Residue, id=residue_id)
-    # Garantir que exista um Profile e evitar condições de corrida
-    profile, _ = Profile.objects.get_or_create(
-        user=residue.citizen, defaults={"user_type": "C"}
-    )
-    profile.points = F("points") + 10
-    profile.save()
-    # refresh para materializar o valor atualizado
-    profile.refresh_from_db()
-    residue.status = "F"
-    residue.save()
+    profile, _ = Profile.objects.get_or_create(user=residue.citizen)
+
+    # Prevent giving points twice for the same residue
+    if residue.status != "F":
+        profile.points = F("points") + 10  # Award points
+        profile.save()
+        residue.status = "F"  # "Finalizado" (Finalized)
+        residue.save()
+
     return redirect("reciclAI:recycler_received")
