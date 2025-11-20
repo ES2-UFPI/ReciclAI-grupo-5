@@ -1,0 +1,29 @@
+{% extends 'base.html' %} {% block title %}Resíduos Recebidos - {{ block.super }}{% endblock %} {%
+block content %}
+<div class="container mt-4">
+  <h1 class="mb-4">Resíduos Recebidos</h1>
+
+  {% if collections %}
+  <div class="list-group">
+    {% for collection in collections %}
+    <div class="list-group-item list-group-item-action flex-column align-items-start">
+      <div class="d-flex w-100 justify-content-between">
+        <h5 class="mb-1">Resíduo: {{ collection.residue.residue_type }}</h5>
+        <small>Status: {{ collection.get_status_display }}</small>
+      </div>
+      <p class="mb-1">Cidadão: {{ collection.residue.citizen.username }}</p>
+      <p class="mb-1">Localização: {{ collection.residue.location }}</p>
+      <a
+        href="{% url 'reciclAI:recycler_process' collection.residue.id %}"
+        class="btn btn-primary mt-2"
+      >
+        Processar
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert alert-info" role="alert">Nenhum resíduo foi entregue ainda.</div>
+  {% endif %}
+</div>
+{% endblock %}

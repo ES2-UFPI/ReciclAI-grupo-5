@@ -6,5 +6,4 @@ class CoreConfig(AppConfig):
     name = "reciclAI"
 
     def ready(self):
-        # Import signals to ensure they are registered when the app is ready
-        import reciclAI.signals  # noqa: F401
+        import reciclAI.signals  # noqa

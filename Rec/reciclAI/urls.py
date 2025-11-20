@@ -1,14 +1,13 @@
 from django.urls import path
 from . import views
 
-app_name = "reciclAI"
+app_name = "core"
 
 urlpatterns = [
     path("", views.index, name="index"),
     path("signup/", views.signup, name="signup"),
     # URLs do Cidadão
     path("residue/create/", views.residue_create, name="residue_create"),
-    path("collection/request/", views.collection_request, name="collection_request"),
     path("collection/status/", views.collection_status, name="collection_status"),
     path("points/", views.points_view, name="points_view"),
     path("rewards/", views.rewards_list, name="rewards_list"),
