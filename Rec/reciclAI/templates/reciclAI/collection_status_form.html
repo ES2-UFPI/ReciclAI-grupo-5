@@ -1,0 +1,12 @@
+{% extends 'base.html' %} {% block title %}Atualizar Status da Coleta{% endblock %} {% block content
+%}
+<div class="card">
+  <div class="card-body">
+    <h1 class="card-title">Atualizar Status da Coleta</h1>
+    <form method="post">
+      {% csrf_token %} {{ form.as_p }}
+      <button type="submit" class="btn btn-primary">Atualizar</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

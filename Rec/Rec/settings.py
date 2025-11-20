@@ -43,7 +43,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "reciclAI.urls"
+ROOT_URLCONF = "Rec.urls"
 
 TEMPLATES = [
     {
@@ -60,6 +60,7 @@ TEMPLATES = [
         },
     },
 ]
+
 
 WSGI_APPLICATION = "Rec.wsgi.application"
 

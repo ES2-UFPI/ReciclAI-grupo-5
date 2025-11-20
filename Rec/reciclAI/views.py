@@ -9,7 +9,7 @@ from .forms import CollectionStatusForm
 
 
 def index(request):
-    return render(request, "core/index.html")
+    return render(request, "reciclAI/index.html")
 
 
 def signup(request):
@@ -21,7 +21,7 @@ def signup(request):
             login(request, user)
             # Create a profile for the new user
             Profile.objects.create(user=user, user_type="C")
-            return redirect("core:index")
+            return redirect("reciclAI:index")
     else:
         form = UserCreationForm()
     return render(request, "registration/signup.html", {"form": form})
@@ -53,13 +53,13 @@ def points_view(request):
     profile, created = Profile.objects.get_or_create(
         user=request.user, defaults={"user_type": "C"}
     )
-    return render(request, "core/points_view.html", {"profile": profile})
+    return render(request, "reciclAI/points_view.html", {"profile": profile})
 
 
 @login_required
 def rewards_list(request):
     rewards = Reward.objects.all()
-    return render(request, "core/rewards_list.html", {"rewards": rewards})
+    return render(request, "reciclAI/rewards_list.html", {"rewards": rewards})
 
 
 @login_required
@@ -70,7 +70,7 @@ def redeem_reward(request, reward_id):
         profile.points -= reward.points_required
         profile.save()
         UserReward.objects.create(user=request.user, reward=reward)
-        return redirect("core:rewards_list")
+        return redirect("reciclAI:rewards_list")
     else:
         return HttpResponse(
             "<h1>Você não tem pontos suficientes para resgatar esta recompensa.</h1>"
@@ -99,12 +99,12 @@ def update_collection_status(request, collection_id):
         form = CollectionStatusForm(request.POST, instance=collection)
         if form.is_valid():
             form.save()
-            return redirect("core:available_collections")
+            return redirect("reciclAI:available_collections")
     else:
         form = CollectionStatusForm(instance=collection)
     return render(
         request,
-        "core/update_collection_status.html",
+        "reciclAI/update_collection_status.html",
         {"form": form, "collection": collection},
     )
 
@@ -131,4 +131,4 @@ def recycler_process(request, residue_id):
     profile.refresh_from_db()
     residue.status = "F"
     residue.save()
-    return redirect("core:recycler_received")
+    return redirect("reciclAI:recycler_received")
