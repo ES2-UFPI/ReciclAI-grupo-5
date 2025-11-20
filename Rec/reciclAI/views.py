@@ -98,10 +98,15 @@ def redeem_reward(request, reward_id):
 @login_required
 def available_collections(request):
     # Shows collections that are "Solicitada" (Requested)
-    collections = Collection.objects.filter(status="S")
-    return render(
-        request, "reciclAI/available_collections.html", {"collections": collections}
-    )
+    available_collections = Collection.objects.filter(status="S")
+    # Shows collections that are "Atribuída" (Assigned) to the current collector
+    accepted_collections = Collection.objects.filter(collector=request.user, status="A")
+
+    context = {
+        "available_collections": available_collections,
+        "accepted_collections": accepted_collections,
+    }
+    return render(request, "reciclAI/available_collections.html", context)
 
 
 @login_required
