@@ -1,0 +1,24 @@
+{% extends 'base.html' %} {% block content %}
+<h2>Status das Minhas Coletas</h2>
+{% if collections %}
+<ul>
+  {% for collection in collections %}
+  <li>
+    <strong>Resíduo:</strong>
+    {{ collection.residue.residue_type }}
+    <br />
+    <strong>Status:</strong>
+    {{ collection.get_status_display }}
+    <br />
+    {% if collection.collector %}
+    <strong>Coletor:</strong>
+    {{ collection.collector.username }} {% endif %}
+  </li>
+  <hr />
+  {% endfor %}
+</ul>
+{% else %}
+<p>Você ainda não solicitou nenhuma coleta.</p>
+{% endif %}
+<a href="{% url 'reciclAI:residue_create' %}">Cadastrar Novo Resíduo</a>
+{% endblock %}
