@@ -40,6 +40,7 @@ class Collection(models.Model):
         ("E", "Em rota"),
         ("C", "Coletada"),
         ("N", "Entregue"),
+        ("F", "Finalizada"),
         ("X", "Cancelada"),
     )
     residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
