@@ -1,5 +1,10 @@
-{% extends 'base.html' %} {% block title %}Resíduos Recebidos - {{ block.super }}{% endblock %} {%
-block content %}
+{% extends "base.html" %}
+
+{% block title %}
+Resíduos Recebidos - {{ block.super }}
+{% endblock %}
+
+{% block content %}
 <div class="container mt-4">
   <h1 class="mb-4">Resíduos Recebidos</h1>
 
@@ -13,8 +18,9 @@ block content %}
       </div>
       <p class="mb-1">Cidadão: {{ collection.residue.citizen.username }}</p>
       <p class="mb-1">Localização: {{ collection.residue.location }}</p>
+
       <a
-        href="{% url 'reciclAI:recycler_process' collection.residue.id %}"
+        href="{% url 'reciclAI:recycler_process' residue_id=collection.residue.id %}"
         class="btn btn-primary mt-2"
       >
         Processar
