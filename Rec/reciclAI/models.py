@@ -21,7 +21,7 @@ class Residue(models.Model):
     STATUS_CHOICES = (
         ("AGUARDANDO_SOLICITACAO_DE_COLETA", "Aguardando Solicitação de Coleta"),
         ("COLETA_SOLICITADA", "Coleta Solicitada"),
-        ("FINALIZADO", "Finalizado"),
+        ("PROCESSADO", "Processado"),  # Renomeado para consistência
     )
     citizen = models.ForeignKey(User, on_delete=models.CASCADE)
     residue_type = models.CharField(max_length=100)
@@ -47,11 +47,10 @@ class Collection(models.Model):
         ("EM_ROTA", "Em Rota"),
         ("COLETADA", "Coletada"),
         ("ENTREGUE_RECICLADORA", "Entregue na Recicladora"),
+        ("PROCESSADO", "Processado"),  # Novo status
         ("CANCELADA", "Cancelada"),
     )
-    residue = models.OneToOneField(
-        Residue, on_delete=models.CASCADE
-    )  # OneToOne garante uma única coleta por resíduo
+    residue = models.OneToOneField(Residue, on_delete=models.CASCADE)
     collector = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True
     )
@@ -60,6 +59,7 @@ class Collection(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    processed_at = models.DateTimeField(null=True, blank=True)  # Novo campo
 
     def __str__(self):
         return f"Coleta para {self.residue.residue_type} - Status: {self.get_status_display()}"

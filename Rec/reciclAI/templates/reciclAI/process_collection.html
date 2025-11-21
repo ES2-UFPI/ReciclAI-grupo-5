@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Processar Coleta - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Confirmar Processamento de Resíduo</h2>
+                </div>
+                <div class="card-body">
+                    <h4 class="card-title">Detalhes da Coleta</h4>
+                    <ul class="list-group list-group-flush mb-4">
+                        <li class="list-group-item"><strong>Tipo de Resíduo:</strong> {{ collection.residue.residue_type }}</li>
+                        <li class="list-group-item"><strong>Cidadão:</strong> {{ collection.residue.citizen.username }}</li>
+                        <li class="list-group-item"><strong>Coletor:</strong> {{ collection.collector.username|default:"Não especificado" }}</li>
+                        <li class="list-group-item"><strong>Localização Original:</strong> {{ collection.residue.location }}</li>
+                        <li class="list-group-item"><strong>Peso (kg):</strong> {{ collection.residue.weight|default_if_none:"Não informado" }}</li>
+                        <li class="list-group-item"><strong>Unidades:</strong> {{ collection.residue.units|default_if_none:"Não informado" }}</li>
+                        <li class="list-group-item"><strong>Data da Entrega:</strong> {{ collection.updated_at|date:"d/m/Y H:i" }}</li>
+                    </ul>
+
+                    <p class="text-center">Ao confirmar, o status da coleta e do resíduo serão atualizados para "Processado", finalizando o ciclo. Esta ação não poderá ser desfeita.</p>
+
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg">Confirmar Processamento</button>
+                            <a href="{% url 'reciclAI:recycler_dashboard' %}" class="btn btn-secondary">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
