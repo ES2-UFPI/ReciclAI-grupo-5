@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 
 class Profile(models.Model):
@@ -18,16 +19,22 @@ class Profile(models.Model):
 
 class Residue(models.Model):
     STATUS_CHOICES = (
-        ("A", "Aguardando Coleta"),
-        ("C", "Coletado"),
-        ("F", "Finalizado"),
+        ("AGUARDANDO_SOLICITACAO_DE_COLETA", "Aguardando Solicitação de Coleta"),
+        ("COLETA_SOLICITADA", "Coleta Solicitada"),
+        ("FINALIZADO", "Finalizado"),
     )
     citizen = models.ForeignKey(User, on_delete=models.CASCADE)
     residue_type = models.CharField(max_length=100)
     weight = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     units = models.IntegerField(null=True, blank=True)
     location = models.CharField(max_length=255)
-    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default="A")
+    collection_date = models.DateField(null=True, blank=True)
+    status = models.CharField(
+        max_length=50,
+        choices=STATUS_CHOICES,
+        default="AGUARDANDO_SOLICITACAO_DE_COLETA",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.residue_type} - {self.citizen.username}"
@@ -35,20 +42,27 @@ class Residue(models.Model):
 
 class Collection(models.Model):
     STATUS_CHOICES = (
-        ("S", "Solicitada"),
-        ("A", "Atribuída"),
-        ("E", "Em rota"),
-        ("C", "Coletada"),
-        ("N", "Entregue"),
-        ("F", "Finalizada"),
-        ("X", "Cancelada"),
+        ("SOLICITADA", "Solicitada"),
+        ("ATRIBUIDA", "Atribuída"),
+        ("EM_ROTA", "Em Rota"),
+        ("COLETADA", "Coletada"),
+        ("ENTREGUE_RECICLADORA", "Entregue na Recicladora"),
+        ("CANCELADA", "Cancelada"),
     )
-    residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
-    collector = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
-    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default="S")
+    residue = models.OneToOneField(
+        Residue, on_delete=models.CASCADE
+    )  # OneToOne garante uma única coleta por resíduo
+    collector = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    status = models.CharField(
+        max_length=50, choices=STATUS_CHOICES, default="SOLICITADA"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.residue} - {self.get_status_display()}"
+        return f"Coleta para {self.residue.residue_type} - Status: {self.get_status_display()}"
 
 
 class Reward(models.Model):

@@ -20,16 +20,13 @@ class CustomUserCreationForm(UserCreationForm):
 
     class Meta(UserCreationForm.Meta):
         model = User
-        # Removido 'user_type' daqui, pois não pertence ao modelo User
         fields = UserCreationForm.Meta.fields
 
     @transaction.atomic
     def save(self, commit=True):
         user = super().save(commit=False)
-        # O UserCreationForm lida com a hash da senha ao salvar
         if commit:
             user.save()
-            # Cria o perfil do usuário com o tipo selecionado
             Profile.objects.create(
                 user=user, user_type=self.cleaned_data.get("user_type")
             )
@@ -37,15 +34,35 @@ class CustomUserCreationForm(UserCreationForm):
 
 
 class ResidueForm(forms.ModelForm):
+    collection_date = forms.DateField(
+        label="Data para Coleta (Opcional)",
+        widget=forms.DateInput(attrs={"type": "date"}),
+        required=False,
+    )
+
     class Meta:
         model = Residue
-        fields = ["residue_type", "weight", "units", "location"]
+        fields = ["residue_type", "weight", "units", "location", "collection_date"]
         labels = {
             "residue_type": "Tipo de Resíduo",
             "weight": "Peso (kg)",
             "units": "Unidades",
             "location": "Endereço de Coleta",
         }
+        help_texts = {
+            "weight": "Informe um valor aproximado.",
+            "units": "Se aplicável (ex: garrafas PET).",
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        weight = cleaned_data.get("weight")
+        units = cleaned_data.get("units")
+        if not weight and not units:
+            raise forms.ValidationError(
+                "Você deve informar o Peso ou as Unidades do resíduo."
+            )
+        return cleaned_data
 
 
 class CollectionStatusForm(forms.ModelForm):

@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Meus Resíduos - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Meus Resíduos Cadastrados</h1>
+        <a href="{% url 'reciclAI:residue_create' %}" class="btn btn-primary">Cadastrar Novo Resíduo</a>
+    </div>
+
+    <p>Aqui você pode ver os resíduos que cadastrou e solicitar a coleta para aqueles que estão aguardando.</p>
+
+    {% if residues %}
+        <div class="list-group">
+            {% for residue in residues %}
+                <div class="list-group-item">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">{{ residue.residue_type }}</h5>
+                        <small class="text-muted">{{ residue.created_at|date:"d/m/Y H:i" }}</small>
+                    </div>
+                    <p class="mb-1">
+                        <strong>Localização:</strong> {{ residue.location }}<br>
+                        <strong>Status:</strong> <span class="badge bg-secondary">{{ residue.get_status_display }}</span>
+                    </p>
+                    
+                    {% if residue.status == 'AGUARDANDO_SOLICITACAO_DE_COLETA' %}
+                        <a href="{% url 'reciclAI:request_collection' residue.id %}" class="btn btn-success mt-2">Solicitar Coleta</a>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info" role="alert">
+            Você ainda não cadastrou nenhum resíduo. <a href="{% url 'reciclAI:residue_create' %}" class="alert-link">Clique aqui para cadastrar</a>.
+        </div>
+    {% endif %}
+    
+    <div class="mt-4">
+        <a href="{% url 'reciclAI:collection_status' %}" class="btn btn-info">Acompanhar Coletas Solicitadas</a>
+    </div>
+</div>
+{% endblock %}
