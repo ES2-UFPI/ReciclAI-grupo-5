@@ -4,38 +4,28 @@ from . import views
 app_name = "reciclAI"
 
 urlpatterns = [
-    # Rotas Públicas
+    # --- Rotas Públicas e de Autenticação ---
     path("", views.public_index, name="public_index"),
     path("signup/", views.signup, name="signup"),
-    # Rota de Dashboard (pós-login)
     path("dashboard/", views.dashboard, name="dashboard"),
-    # URLs do Cidadão
-    path("residue/create/", views.residue_create, name="residue_create"),
-    path("collection/status/", views.collection_status, name="collection_status"),
-    path("points/", views.points_view, name="points_view"),
-    path("rewards/", views.rewards_list, name="rewards_list"),
-    path("rewards/redeem/<int:reward_id>/", views.redeem_reward, name="redeem_reward"),
-    # URLs do Coletor
+    # --- Fluxo do Cidadão ---
+    # Listar resíduos para solicitar coleta
+    path("cidadao/residuos/", views.residue_list, name="residue_list"),
+    # Cadastrar um novo resíduo
+    path("cidadao/residuos/cadastrar/", views.residue_create, name="residue_create"),
+    # Solicitar a coleta de um resíduo
     path(
-        "collections/available/",
-        views.available_collections,
-        name="available_collections",
+        "cidadao/residuos/<int:residue_id>/solicitar-coleta/",
+        views.request_collection,
+        name="request_collection",
     ),
-    path(
-        "collection/accept/<int:collection_id>/",
-        views.accept_collection,
-        name="accept_collection",
-    ),
-    path(
-        "collection/update_status/<int:collection_id>/",
-        views.update_collection_status,
-        name="update_collection_status",
-    ),
-    # URLs da Recicladora
-    path("recycler/received/", views.recycler_received, name="recycler_received"),
-    path(
-        "recycler/process/<int:residue_id>/",
-        views.recycler_process,
-        name="recycler_process",
-    ),
+    # Acompanhar o status das coletas
+    path("cidadao/coletas/", views.collection_status, name="collection_status"),
+    # --- Fluxo do Coletor (Temporariamente Desativado) ---
+    # path('coletor/coletas/disponiveis/', views.available_collections, name='available_collections'),
+    # path('coletor/coletas/<int:collection_id>/aceitar/', views.accept_collection, name='accept_collection'),
+    # path('coletor/coletas/<int:collection_id>/atualizar/', views.update_collection_status, name='update_collection_status'),
+    # --- Fluxo da Recicladora (Temporariamente Desativado) ---
+    # path('recicladora/recebidos/', views.recycler_received, name='recycler_received'),
+    # path('recicladora/processar/<int:residue_id>/', views.recycler_process, name='recycler_process'),
 ]
