@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login
 from django.db import transaction
 from django.contrib import messages
+from django.utils import timezone
 from .models import Residue, Collection, Profile
 from .forms import CustomUserCreationForm, ResidueForm, CollectionStatusForm
 
@@ -25,9 +26,7 @@ def dashboard(request):
     elif user_type == "L":
         return redirect("reciclAI:collector_dashboard")
     elif user_type == "R":
-        # Temporariamente redirecionando para a mesma view do coletor
-        # A ser implementado no próximo passo
-        return redirect("reciclAI:recycler_received")
+        return redirect("reciclAI:recycler_dashboard")
     return redirect("login")
 
 
@@ -69,9 +68,17 @@ def collector_required(view_func):
     return _wrapped_view
 
 
-# --- Fluxo do Cidadão ---
+def recycler_required(view_func):
+    @login_required
+    def _wrapped_view(request, *args, **kwargs):
+        if request.user.profile.user_type != "R":
+            return HttpResponseForbidden("Acesso negado. Apenas para recicladoras.")
+        return view_func(request, *args, **kwargs)
+
+    return _wrapped_view
 
 
+# --- Fluxo do Cidadão (Existente) ---
 @citizen_required
 def residue_list(request):
     residues = Residue.objects.filter(citizen=request.user).order_by("-created_at")
@@ -122,15 +129,9 @@ def collection_status(request):
     )
 
 
-# --- Fluxo do Coletor ---
-
-
+# --- Fluxo do Coletor (Existente) ---
 @collector_required
 def collector_dashboard(request):
-    """
-    Dashboard principal do coletor.
-    Mostra coletas disponíveis para aceite e as coletas já atribuídas a ele.
-    """
     available_collections = Collection.objects.filter(status="SOLICITADA").order_by(
         "created_at"
     )
@@ -138,7 +139,6 @@ def collector_dashboard(request):
     my_collections = Collection.objects.filter(
         collector=request.user, status__in=my_collections_status
     ).order_by("-updated_at")
-
     context = {
         "available_collections": available_collections,
         "my_collections": my_collections,
@@ -149,9 +149,6 @@ def collector_dashboard(request):
 @collector_required
 @transaction.atomic
 def accept_collection(request, collection_id):
-    """
-    Atribui uma coleta disponível ao coletor logado.
-    """
     collection = get_object_or_404(Collection, id=collection_id, status="SOLICITADA")
     collection.collector = request.user
     collection.status = "ATRIBUIDA"
@@ -165,11 +162,7 @@ def accept_collection(request, collection_id):
 
 @collector_required
 def update_collection_status(request, collection_id):
-    """
-    Permite ao coletor atualizar o status de uma coleta que está sob sua responsabilidade.
-    """
     collection = get_object_or_404(Collection, id=collection_id, collector=request.user)
-
     if request.method == "POST":
         form = CollectionStatusForm(
             request.POST, instance=collection, current_status=collection.status
@@ -182,17 +175,59 @@ def update_collection_status(request, collection_id):
         form = CollectionStatusForm(
             instance=collection, current_status=collection.status
         )
-
-    context = {
-        "form": form,
-        "collection": collection,
-    }
+    context = {"form": form, "collection": collection}
     return render(request, "reciclAI/update_collection_status.html", context)
 
 
-# --- Fluxo da Recicladora (Ainda não implementado) ---
-# @login_required
-# def recycler_received(request): ...
+# --- Fluxo da Recicladora ---
 
-# @login_required
-# def recycler_process(request, residue_id): ...
+
+@recycler_required
+def recycler_dashboard(request):
+    """
+    Dashboard da recicladora, mostrando coletas entregues e prontas para processamento.
+    """
+    collections_to_process = Collection.objects.filter(
+        status="ENTREGUE_RECICLADORA"
+    ).order_by("updated_at")
+    processed_collections = Collection.objects.filter(status="PROCESSADO").order_by(
+        "-processed_at"
+    )[
+        :10
+    ]  # Mostra as 10 últimas
+
+    context = {
+        "collections_to_process": collections_to_process,
+        "processed_collections": processed_collections,
+    }
+    return render(request, "reciclAI/recycler_dashboard.html", context)
+
+
+@recycler_required
+@transaction.atomic
+def process_collection(request, collection_id):
+    """
+    Exibe os detalhes de uma coleta e permite confirmar o processamento.
+    """
+    collection = get_object_or_404(
+        Collection, id=collection_id, status="ENTREGUE_RECICLADORA"
+    )
+
+    if request.method == "POST":
+        # Atualiza o status da coleta e do resíduo
+        collection.status = "PROCESSADO"
+        collection.processed_at = timezone.now()
+        collection.save()
+
+        residue = collection.residue
+        residue.status = "PROCESSADO"
+        residue.save()
+
+        # Futuramente, a lógica de pontos será adicionada aqui
+        messages.success(
+            request, f'O resíduo "{residue.residue_type}" foi processado com sucesso.'
+        )
+        return redirect("reciclAI:recycler_dashboard")
+
+    context = {"collection": collection}
+    return render(request, "reciclAI/process_collection.html", context)

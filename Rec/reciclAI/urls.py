@@ -29,7 +29,11 @@ urlpatterns = [
         views.update_collection_status,
         name="update_collection_status",
     ),
-    # --- Fluxo da Recicladora (Temporariamente Desativado) ---
-    # path('recicladora/recebidos/', views.recycler_received, name='recycler_received'),
-    # path('recicladora/processar/<int:residue_id>/', views.recycler_process, name='recycler_process'),
+    # --- Fluxo da Recicladora ---
+    path("recicladora/dashboard/", views.recycler_dashboard, name="recycler_dashboard"),
+    path(
+        "recicladora/coletas/<int:collection_id>/processar/",
+        views.process_collection,
+        name="process_collection",
+    ),
 ]
