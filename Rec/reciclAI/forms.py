@@ -6,6 +6,7 @@ from .models import Profile, Residue, Collection
 
 
 class CustomUserCreationForm(UserCreationForm):
+    # ... (código existente sem alteração)
     USER_TYPE_CHOICES = (
         ("C", "Cidadão"),
         ("L", "Coletor"),
@@ -34,6 +35,7 @@ class CustomUserCreationForm(UserCreationForm):
 
 
 class ResidueForm(forms.ModelForm):
+    # ... (código existente sem alteração)
     collection_date = forms.DateField(
         label="Data para Coleta (Opcional)",
         widget=forms.DateInput(attrs={"type": "date"}),
@@ -66,6 +68,37 @@ class ResidueForm(forms.ModelForm):
 
 
 class CollectionStatusForm(forms.ModelForm):
+    """
+    Formulário para o coletor atualizar o status de uma coleta.
+    A lógica de transição de status é aplicada aqui.
+    """
+
+    # Define as transições de status permitidas
+    STATUS_TRANSITIONS = {
+        "ATRIBUIDA": [("EM_ROTA", "Em Rota"), ("CANCELADA", "Cancelada")],
+        "EM_ROTA": [("COLETADA", "Coletada"), ("CANCELADA", "Cancelada")],
+        "COLETADA": [("ENTREGUE_RECICLADORA", "Entregue na Recicladora")],
+    }
+
+    def __init__(self, *args, **kwargs):
+        current_status = kwargs.pop("current_status", None)
+        super().__init__(*args, **kwargs)
+
+        # Filtra as opções do campo 'status' com base no status atual
+        if current_status in self.STATUS_TRANSITIONS:
+            allowed_choices = self.STATUS_TRANSITIONS[current_status]
+            # Adiciona a opção atual para o caso de não querer mudar
+            allowed_choices.insert(
+                0, (self.instance.status, self.instance.get_status_display())
+            )
+            self.fields["status"].choices = allowed_choices
+        else:
+            # Se não houver transições (ex: 'ENTREGUE'), o campo fica desabilitado
+            self.fields["status"].disabled = True
+            self.fields["status"].help_text = (
+                "Esta coleta não pode mais ter seu status alterado."
+            )
+
     class Meta:
         model = Collection
         fields = ["status"]
