@@ -6,7 +6,7 @@ from django.contrib.auth import login
 from django.db import transaction
 from django.contrib import messages
 from .models import Residue, Collection, Profile
-from .forms import CustomUserCreationForm, ResidueForm
+from .forms import CustomUserCreationForm, ResidueForm, CollectionStatusForm
 
 # --- Views Públicas e de Autenticação ---
 
@@ -21,13 +21,12 @@ def public_index(request):
 def dashboard(request):
     user_type = request.user.profile.user_type
     if user_type == "C":
-        # Cidadão é direcionado para a lista de resíduos
         return redirect("reciclAI:residue_list")
     elif user_type == "L":
-        # Coletor (ainda não implementado no novo fluxo)
-        return redirect("reciclAI:available_collections")
+        return redirect("reciclAI:collector_dashboard")
     elif user_type == "R":
-        # Recicladora (ainda não implementado no novo fluxo)
+        # Temporariamente redirecionando para a mesma view do coletor
+        # A ser implementado no próximo passo
         return redirect("reciclAI:recycler_received")
     return redirect("login")
 
@@ -60,25 +59,27 @@ def citizen_required(view_func):
     return _wrapped_view
 
 
+def collector_required(view_func):
+    @login_required
+    def _wrapped_view(request, *args, **kwargs):
+        if request.user.profile.user_type != "L":
+            return HttpResponseForbidden("Acesso negado. Apenas para coletores.")
+        return view_func(request, *args, **kwargs)
+
+    return _wrapped_view
+
+
 # --- Fluxo do Cidadão ---
 
 
 @citizen_required
 def residue_list(request):
-    """
-    Lista os resíduos cadastrados pelo cidadão.
-    É a página principal do cidadão, onde ele pode ver o status
-    e solicitar a coleta de resíduos que ainda não foram solicitados.
-    """
     residues = Residue.objects.filter(citizen=request.user).order_by("-created_at")
     return render(request, "reciclAI/residue_list.html", {"residues": residues})
 
 
 @citizen_required
 def residue_create(request):
-    """
-    Formulário para o cidadão cadastrar um novo resíduo.
-    """
     if request.method == "POST":
         form = ResidueForm(request.POST)
         if form.is_valid():
@@ -98,32 +99,21 @@ def residue_create(request):
 @citizen_required
 @transaction.atomic
 def request_collection(request, residue_id):
-    """
-    Cria uma solicitação de coleta para um resíduo específico.
-    Impede a criação de coletas duplicadas.
-    """
     residue = get_object_or_404(Residue, id=residue_id, citizen=request.user)
-
     if residue.status != "AGUARDANDO_SOLICITACAO_DE_COLETA":
         messages.error(
             request, "Este resíduo já teve sua coleta solicitada ou finalizada."
         )
         return redirect("reciclAI:residue_list")
-
-    # Cria a coleta e atualiza o status do resíduo
     Collection.objects.create(residue=residue, status="SOLICITADA")
     residue.status = "COLETA_SOLICITADA"
     residue.save()
-
     messages.success(request, "Coleta solicitada com sucesso!")
-    return redirect("reciclAI:collection_status")  # Redireciona para o acompanhamento
+    return redirect("reciclAI:collection_status")
 
 
 @citizen_required
 def collection_status(request):
-    """
-    Lista todas as coletas solicitadas pelo cidadão para acompanhamento.
-    """
     collections = Collection.objects.filter(residue__citizen=request.user).order_by(
         "-updated_at"
     )
@@ -132,19 +122,75 @@ def collection_status(request):
     )
 
 
-# --- Views Antigas (Desativadas Temporariamente) ---
-# As views de Coletor e Recicladora precisam ser refatoradas
-# para se alinharem aos novos status e fluxos.
+# --- Fluxo do Coletor ---
 
-# @login_required
-# def available_collections(request): ...
 
-# @login_required
-# def accept_collection(request, collection_id): ...
+@collector_required
+def collector_dashboard(request):
+    """
+    Dashboard principal do coletor.
+    Mostra coletas disponíveis para aceite e as coletas já atribuídas a ele.
+    """
+    available_collections = Collection.objects.filter(status="SOLICITADA").order_by(
+        "created_at"
+    )
+    my_collections_status = ["ATRIBUIDA", "EM_ROTA", "COLETADA"]
+    my_collections = Collection.objects.filter(
+        collector=request.user, status__in=my_collections_status
+    ).order_by("-updated_at")
 
-# @login_required
-# def update_collection_status(request, collection_id): ...
+    context = {
+        "available_collections": available_collections,
+        "my_collections": my_collections,
+    }
+    return render(request, "reciclAI/collector_dashboard.html", context)
 
+
+@collector_required
+@transaction.atomic
+def accept_collection(request, collection_id):
+    """
+    Atribui uma coleta disponível ao coletor logado.
+    """
+    collection = get_object_or_404(Collection, id=collection_id, status="SOLICITADA")
+    collection.collector = request.user
+    collection.status = "ATRIBUIDA"
+    collection.save()
+    messages.success(
+        request,
+        f'Coleta do resíduo "{collection.residue.residue_type}" atribuída a você!',
+    )
+    return redirect("reciclAI:collector_dashboard")
+
+
+@collector_required
+def update_collection_status(request, collection_id):
+    """
+    Permite ao coletor atualizar o status de uma coleta que está sob sua responsabilidade.
+    """
+    collection = get_object_or_404(Collection, id=collection_id, collector=request.user)
+
+    if request.method == "POST":
+        form = CollectionStatusForm(
+            request.POST, instance=collection, current_status=collection.status
+        )
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Status da coleta atualizado com sucesso.")
+            return redirect("reciclAI:collector_dashboard")
+    else:
+        form = CollectionStatusForm(
+            instance=collection, current_status=collection.status
+        )
+
+    context = {
+        "form": form,
+        "collection": collection,
+    }
+    return render(request, "reciclAI/update_collection_status.html", context)
+
+
+# --- Fluxo da Recicladora (Ainda não implementado) ---
 # @login_required
 # def recycler_received(request): ...
 
