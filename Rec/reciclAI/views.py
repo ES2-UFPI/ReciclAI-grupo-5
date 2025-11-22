@@ -6,7 +6,7 @@ from django.contrib.auth import login
 from django.db import transaction
 from django.contrib import messages
 from django.utils import timezone
-from .models import Residue, Collection, Profile, PointsTransaction
+from .models import Residue, Collection, Profile, PointsTransaction, Reward, UserReward
 from .forms import CustomUserCreationForm, ResidueForm, CollectionStatusForm
 
 # --- Views Públicas e de Autenticação ---
@@ -144,6 +144,56 @@ def points_history(request):
         "transactions": transactions,
     }
     return render(request, "reciclAI/points_history.html", context)
+
+
+# --- Sistema de Recompensas ---
+@citizen_required
+def rewards_list(request):
+    """
+    Lista todas as recompensas ativas que o cidadão pode resgatar.
+    """
+    rewards = Reward.objects.filter(is_active=True).order_by("points_required")
+    user_points = request.user.profile.points
+    context = {
+        "rewards": rewards,
+        "user_points": user_points,
+    }
+    return render(request, "reciclAI/rewards_list.html", context)
+
+
+@citizen_required
+@transaction.atomic
+def redeem_reward(request, reward_id):
+    """
+    Processa o resgate de uma recompensa, se o usuário tiver pontos suficientes.
+    """
+    reward = get_object_or_404(Reward, id=reward_id, is_active=True)
+    profile = request.user.profile
+
+    if profile.points >= reward.points_required:
+        # Deduz os pontos
+        profile.points -= reward.points_required
+        profile.save()
+
+        # Registra o resgate
+        UserReward.objects.create(user=request.user, reward=reward)
+
+        # Opcional: registrar a transação de "gasto" de pontos
+        PointsTransaction.objects.create(
+            user=request.user,
+            points_gained=-reward.points_required,
+            description=f"Resgate da recompensa: {reward.name}",
+        )
+
+        messages.success(
+            request, f'Parabéns! Você resgatou a recompensa "{reward.name}".'
+        )
+    else:
+        messages.error(
+            request, "Você não tem pontos suficientes para resgatar esta recompensa."
+        )
+
+    return redirect("reciclAI:rewards_list")
 
 
 # --- Fluxo do Coletor (Existente) ---
