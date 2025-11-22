@@ -22,7 +22,7 @@
                             </div>
                             <p class="mb-1"><strong>Localização:</strong> {{ collection.residue.location }}</p>
                             <p class="mb-1"><strong>Status:</strong> <span class="badge bg-info">{{ collection.get_status_display }}</span></p>
-                            <a href="{% url 'reciclAI:update_collection_status' collection.id %}" class="btn btn-primary btn-sm mt-2">Atualizar Status</a>
+                            <a href="{% url 'reciclAI:collection_transition' collection.id %}" class="btn btn-primary btn-sm mt-2">Atualizar Status</a>
                         </div>
                     {% endfor %}
                 </div>
