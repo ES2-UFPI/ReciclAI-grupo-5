@@ -17,6 +17,13 @@ urlpatterns = [
         name="request_collection",
     ),
     path("cidadao/coletas/", views.collection_status, name="collection_status"),
+    path("cidadao/pontos/", views.points_history, name="points_history"),
+    path("cidadao/recompensas/", views.rewards_list, name="rewards_list"),
+    path(
+        "cidadao/recompensas/<int:reward_id>/resgatar/",
+        views.redeem_reward,
+        name="redeem_reward",
+    ),
     # --- Fluxo do Coletor ---
     path("coletor/dashboard/", views.collector_dashboard, name="collector_dashboard"),
     path(

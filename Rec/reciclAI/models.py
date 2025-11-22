@@ -37,7 +37,7 @@ class Residue(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.residue_type} - {self.citizen.username}"
+        return f"{self.residue.residue_type} - {self.citizen.username}"
 
 
 class Collection(models.Model):
@@ -67,7 +67,9 @@ class Collection(models.Model):
 
 class Reward(models.Model):
     name = models.CharField(max_length=100)
+    description = models.TextField(default="Descrição padrão")
     points_required = models.IntegerField()
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
@@ -80,3 +82,15 @@ class UserReward(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.reward.name}"
+
+
+class PointsTransaction(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="points_transactions"
+    )
+    points_gained = models.IntegerField()
+    transaction_date = models.DateTimeField(auto_now_add=True)
+    description = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.points_gained} pontos em {self.transaction_date}"

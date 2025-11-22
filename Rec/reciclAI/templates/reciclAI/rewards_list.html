@@ -1,14 +1,51 @@
-{% extends 'base.html' %} {% block title %}Recompensas{% endblock %} {% block content %}
-<h1>Recompensas Disponíveis</h1>
-<ul class="list-group">
-  {% for reward in rewards %}
-  <li class="list-group-item d-flex justify-content-between align-items-center">
-    <div>
-      <strong>{{ reward.name }}</strong>
-      <div class="text-muted">{{ reward.points_required }} pontos</div>
+{% extends 'base.html' %}
+
+{% block title %}Resgatar Recompensas - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h1 class="mb-0">Recompensas Disponíveis</h1>
+                    <a href="{% url 'reciclAI:dashboard' %}" class="btn btn-secondary">Voltar ao Dashboard</a>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info text-center">
+                        <h3>Seu Saldo: <strong>{{ user_points }}</strong> ponto(s)</h3>
+                    </div>
+
+                    <div class="row">
+                        {% for reward in rewards %}
+                            <div class="col-md-4 mb-4">
+                                <div class="card h-100">
+                                    <div class="card-body d-flex flex-column">
+                                        <h5 class="card-title">{{ reward.name }}</h5>
+                                        <p class="card-text">{{ reward.description }}</p>
+                                        <div class="mt-auto">
+                                            <p class="fw-bold">Custo: {{ reward.points_required }} pontos</p>
+                                            {% if user_points >= reward.points_required %}
+                                                <form action="{% url 'reciclAI:redeem_reward' reward.id %}" method="post">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-success w-100">Resgatar</button>
+                                                </form>
+                                            {% else %}
+                                                <button type="button" class="btn btn-secondary w-100" disabled>Pontos Insuficientes</button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <div class="col">
+                                <p class="text-center">Não há recompensas disponíveis no momento.</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    <a class="btn btn-sm btn-primary" href="{% url 'core:redeem_reward' reward.id %}">Resgatar</a>
-  </li>
-  {% endfor %}
-</ul>
+</div>
 {% endblock %}

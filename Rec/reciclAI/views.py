@@ -6,7 +6,7 @@ from django.contrib.auth import login
 from django.db import transaction
 from django.contrib import messages
 from django.utils import timezone
-from .models import Residue, Collection, Profile
+from .models import Residue, Collection, Profile, PointsTransaction, Reward, UserReward
 from .forms import CustomUserCreationForm, ResidueForm, CollectionStatusForm
 
 # --- Views Públicas e de Autenticação ---
@@ -129,6 +129,73 @@ def collection_status(request):
     )
 
 
+@citizen_required
+def points_history(request):
+    """
+    Exibe o saldo de pontos e o histórico de transações do cidadão.
+    """
+    profile = request.user.profile
+    transactions = PointsTransaction.objects.filter(user=request.user).order_by(
+        "-transaction_date"
+    )
+
+    context = {
+        "profile": profile,
+        "transactions": transactions,
+    }
+    return render(request, "reciclAI/points_history.html", context)
+
+
+# --- Sistema de Recompensas ---
+@citizen_required
+def rewards_list(request):
+    """
+    Lista todas as recompensas ativas que o cidadão pode resgatar.
+    """
+    rewards = Reward.objects.filter(is_active=True).order_by("points_required")
+    user_points = request.user.profile.points
+    context = {
+        "rewards": rewards,
+        "user_points": user_points,
+    }
+    return render(request, "reciclAI/rewards_list.html", context)
+
+
+@citizen_required
+@transaction.atomic
+def redeem_reward(request, reward_id):
+    """
+    Processa o resgate de uma recompensa, se o usuário tiver pontos suficientes.
+    """
+    reward = get_object_or_404(Reward, id=reward_id, is_active=True)
+    profile = request.user.profile
+
+    if profile.points >= reward.points_required:
+        # Deduz os pontos
+        profile.points -= reward.points_required
+        profile.save()
+
+        # Registra o resgate
+        UserReward.objects.create(user=request.user, reward=reward)
+
+        # Opcional: registrar a transação de "gasto" de pontos
+        PointsTransaction.objects.create(
+            user=request.user,
+            points_gained=-reward.points_required,
+            description=f"Resgate da recompensa: {reward.name}",
+        )
+
+        messages.success(
+            request, f'Parabéns! Você resgatou a recompensa "{reward.name}".'
+        )
+    else:
+        messages.error(
+            request, "Você não tem pontos suficientes para resgatar esta recompensa."
+        )
+
+    return redirect("reciclAI:rewards_list")
+
+
 # --- Fluxo do Coletor (Existente) ---
 @collector_required
 def collector_dashboard(request):
@@ -214,26 +281,40 @@ def recycler_dashboard(request):
 @recycler_required
 @transaction.atomic
 def process_collection(request, collection_id):
-    """
-    Exibe os detalhes de uma coleta e permite confirmar o processamento.
-    """
     collection = get_object_or_404(
         Collection, id=collection_id, status="ENTREGUE_RECICLADORA"
     )
 
     if request.method == "POST":
+        residue = collection.residue
+        citizen_profile = residue.citizen.profile
+
+        # Define a quantidade de pontos a serem ganhos
+        points_to_award = 10  # Exemplo: 10 pontos por coleta processada
+
         # Atualiza o status da coleta e do resíduo
         collection.status = "PROCESSADO"
         collection.processed_at = timezone.now()
-        collection.save()
-
-        residue = collection.residue
         residue.status = "PROCESSADO"
-        residue.save()
 
-        # Futuramente, a lógica de pontos será adicionada aqui
+        # Adiciona os pontos ao perfil do cidadão
+        citizen_profile.points += points_to_award
+
+        # Cria um registro da transação de pontos
+        PointsTransaction.objects.create(
+            user=residue.citizen,
+            points_gained=points_to_award,
+            description=f"Coleta de {residue.residue_type} processada.",
+        )
+
+        # Salva todas as alterações
+        collection.save()
+        residue.save()
+        citizen_profile.save()
+
         messages.success(
-            request, f'O resíduo "{residue.residue_type}" foi processado com sucesso.'
+            request,
+            f'O resíduo "{residue.residue_type}" foi processado e {points_to_award} pontos foram concedidos ao cidadão.',
         )
         return redirect("reciclAI:recycler_dashboard")
 
