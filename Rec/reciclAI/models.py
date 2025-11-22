@@ -80,3 +80,15 @@ class UserReward(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.reward.name}"
+
+
+class PointsTransaction(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="points_transactions"
+    )
+    points_gained = models.IntegerField()
+    transaction_date = models.DateTimeField(auto_now_add=True)
+    description = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.points_gained} pontos em {self.transaction_date}"

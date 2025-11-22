@@ -6,7 +6,7 @@ from django.contrib.auth import login
 from django.db import transaction
 from django.contrib import messages
 from django.utils import timezone
-from .models import Residue, Collection, Profile
+from .models import Residue, Collection, Profile, PointsTransaction
 from .forms import CustomUserCreationForm, ResidueForm, CollectionStatusForm
 
 # --- Views Públicas e de Autenticação ---
@@ -129,6 +129,23 @@ def collection_status(request):
     )
 
 
+@citizen_required
+def points_history(request):
+    """
+    Exibe o saldo de pontos e o histórico de transações do cidadão.
+    """
+    profile = request.user.profile
+    transactions = PointsTransaction.objects.filter(user=request.user).order_by(
+        "-transaction_date"
+    )
+
+    context = {
+        "profile": profile,
+        "transactions": transactions,
+    }
+    return render(request, "reciclAI/points_history.html", context)
+
+
 # --- Fluxo do Coletor (Existente) ---
 @collector_required
 def collector_dashboard(request):
@@ -214,26 +231,40 @@ def recycler_dashboard(request):
 @recycler_required
 @transaction.atomic
 def process_collection(request, collection_id):
-    """
-    Exibe os detalhes de uma coleta e permite confirmar o processamento.
-    """
     collection = get_object_or_404(
         Collection, id=collection_id, status="ENTREGUE_RECICLADORA"
     )
 
     if request.method == "POST":
+        residue = collection.residue
+        citizen_profile = residue.citizen.profile
+
+        # Define a quantidade de pontos a serem ganhos
+        points_to_award = 10  # Exemplo: 10 pontos por coleta processada
+
         # Atualiza o status da coleta e do resíduo
         collection.status = "PROCESSADO"
         collection.processed_at = timezone.now()
-        collection.save()
-
-        residue = collection.residue
         residue.status = "PROCESSADO"
-        residue.save()
 
-        # Futuramente, a lógica de pontos será adicionada aqui
+        # Adiciona os pontos ao perfil do cidadão
+        citizen_profile.points += points_to_award
+
+        # Cria um registro da transação de pontos
+        PointsTransaction.objects.create(
+            user=residue.citizen,
+            points_gained=points_to_award,
+            description=f"Coleta de {residue.residue_type} processada.",
+        )
+
+        # Salva todas as alterações
+        collection.save()
+        residue.save()
+        citizen_profile.save()
+
         messages.success(
-            request, f'O resíduo "{residue.residue_type}" foi processado com sucesso.'
+            request,
+            f'O resíduo "{residue.residue_type}" foi processado e {points_to_award} pontos foram concedidos ao cidadão.',
         )
         return redirect("reciclAI:recycler_dashboard")
 
