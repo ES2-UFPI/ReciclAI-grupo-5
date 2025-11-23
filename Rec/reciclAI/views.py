@@ -282,7 +282,9 @@ def recycler_dashboard(request):
 @transaction.atomic
 def process_collection(request, collection_id):
     collection = get_object_or_404(
-        Collection, id=collection_id, status="ENTREGUE_RECICLADORA"
+        Collection.objects.select_related("residue__citizen__profile"),
+        id=collection_id,
+        status="ENTREGUE_RECICLADORA",
     )
 
     if request.method == "POST":
@@ -291,11 +293,6 @@ def process_collection(request, collection_id):
 
         # Define a quantidade de pontos a serem ganhos
         points_to_award = 10  # Exemplo: 10 pontos por coleta processada
-
-        # Atualiza o status da coleta e do resíduo
-        collection.status = "PROCESSADO"
-        collection.processed_at = timezone.now()
-        residue.status = "PROCESSADO"
 
         # Adiciona os pontos ao perfil do cidadão
         citizen_profile.points += points_to_award
@@ -307,9 +304,12 @@ def process_collection(request, collection_id):
             description=f"Coleta de {residue.residue_type} processada.",
         )
 
+        # Atualiza o status da coleta
+        collection.status = "PROCESSADO"
+        collection.processed_at = timezone.now()
+
         # Salva todas as alterações
         collection.save()
-        residue.save()
         citizen_profile.save()
 
         messages.success(

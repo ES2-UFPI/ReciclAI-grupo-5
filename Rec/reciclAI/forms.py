@@ -25,8 +25,6 @@ class CustomUserCreationForm(UserCreationForm):
     @transaction.atomic
     def save(self, commit=True):
         user = super().save(commit=True)
-        # O signal 'create_user_profile' já criou um Profile.
-        # Aqui, apenas atualizamos o 'user_type' com base na escolha do formulário.
         user.profile.user_type = self.cleaned_data.get("user_type")
         if commit:
             user.profile.save()
@@ -58,10 +56,18 @@ class ResidueForm(forms.ModelForm):
         cleaned_data = super().clean()
         weight = cleaned_data.get("weight")
         units = cleaned_data.get("units")
+
         if not weight and not units:
             raise forms.ValidationError(
                 "Você deve informar o Peso ou as Unidades do resíduo."
             )
+
+        if weight is not None and weight <= 0:
+            self.add_error("weight", "O peso deve ser um valor maior que zero.")
+
+        if units is not None and units <= 0:
+            self.add_error("units", "A quantidade de unidades deve ser maior que zero.")
+
         return cleaned_data
 
 

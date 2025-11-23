@@ -37,7 +37,7 @@ class Residue(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.residue.residue_type} - {self.citizen.username}"
+        return f"{self.residue_type} - {self.citizen.username}"
 
 
 class Collection(models.Model):

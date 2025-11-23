@@ -27,30 +27,18 @@ def save_user_profile(sender, instance, **kwargs):
 
 
 @receiver(post_save, sender=Collection)
-def assign_points_on_processing(sender, instance, created, **kwargs):
+def update_residue_status_on_collection_change(sender, instance, **kwargs):
     """
-    Atribui pontos ao cidadão quando a coleta é marcada como 'PROCESSADO'.
+    Atualiza o status do Residue para corresponder ao da Collection.
     """
-    # Verifica se o status da coleta é 'PROCESSADO'
-    if instance.status == "PROCESSADO":
-        try:
-            # Acessa o cidadão através do resíduo associado à coleta
-            citizen_profile = instance.residue.citizen.profile
-
-            # Adiciona 1 ponto ao perfil do cidadão
-            citizen_profile.points += 1
-            citizen_profile.save()
-
-            # Log ou mensagem (opcional)
-            print(
-                f"1 ponto adicionado a {citizen_profile.user.username}. Total: {citizen_profile.points} pontos."
-            )
-
-        except Profile.DoesNotExist:
-            # Lida com o caso em que o perfil não existe
-            print(
-                f"Erro: Perfil para o usuário {instance.residue.citizen.username} não encontrado."
-            )
-        except Exception as e:
-            # Lida com outras exceções inesperadas
-            print(f"Ocorreu um erro ao atribuir pontos: {e}")
+    residue = instance.residue
+    if instance.status == "PROCESSADO" and residue.status != "PROCESSADO":
+        residue.status = "PROCESSADO"
+        residue.save()
+    elif (
+        instance.status
+        in ["SOLICITADA", "ATRIBUIDA", "EM_ROTA", "COLETADA", "ENTREGUE_RECICLADORA"]
+        and residue.status != "COLETA_SOLICITADA"
+    ):
+        residue.status = "COLETA_SOLICITADA"
+        residue.save()
