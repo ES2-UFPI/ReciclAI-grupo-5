@@ -55,7 +55,10 @@
                                 <td>{{ collection.residue.location }}</td>
                                 <td>{{ collection.created_at|date:"d/m/Y" }}</td>
                                 <td>
-                                    <a href="{% url 'reciclAI:accept_collection' collection.id %}" class="btn btn-success btn-sm">Aceitar</a>
+                                    <form action="{% url 'reciclAI:accept_collection' collection.id %}" method="post" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-success btn-sm">Aceitar</button>
+                                    </form>
                                 </td>
                             </tr>
                         {% endfor %}
