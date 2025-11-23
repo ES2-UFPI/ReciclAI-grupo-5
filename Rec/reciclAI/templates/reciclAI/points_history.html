@@ -23,7 +23,7 @@
                                 <tr>
                                     <th>Data</th>
                                     <th>Descrição</th>
-                                    <th class="text-end">Pontos Ganhos</th>
+                                    <th class="text-end">Pontos</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -31,7 +31,9 @@
                                     <tr>
                                         <td>{{ transaction.transaction_date|date:"d/m/Y H:i" }}</td>
                                         <td>{{ transaction.description }}</td>
-                                        <td class="text-end text-success">+{{ transaction.points_gained }}</td>
+                                        <td class="text-end {% if transaction.points_gained > 0 %}text-success{% else %}text-danger{% endif %}">
+                                            {% if transaction.points_gained > 0 %}+{% endif %}{{ transaction.points_gained }}
+                                        </td>
                                     </tr>
                                 {% empty %}
                                     <tr>

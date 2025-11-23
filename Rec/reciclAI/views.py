@@ -216,7 +216,15 @@ def collector_dashboard(request):
 @collector_required
 @transaction.atomic
 def accept_collection(request, collection_id):
-    collection = get_object_or_404(Collection, id=collection_id, status="SOLICITADA")
+    if request.method != "POST":
+        return HttpResponseForbidden("Acesso negado.")
+
+    collection = get_object_or_404(Collection, id=collection_id)
+
+    if collection.status != "SOLICITADA":
+        messages.error(request, "Esta coleta não está mais disponível.")
+        return redirect("reciclAI:collector_dashboard")
+
     collection.collector = request.user
     collection.status = "ATRIBUIDA"
     collection.save()
