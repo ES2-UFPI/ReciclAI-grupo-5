@@ -25,8 +25,6 @@ class CustomUserCreationForm(UserCreationForm):
     @transaction.atomic
     def save(self, commit=True):
         user = super().save(commit=True)
-        # O signal 'create_user_profile' já criou um Profile.
-        # Aqui, apenas atualizamos o 'user_type' com base na escolha do formulário.
         user.profile.user_type = self.cleaned_data.get("user_type")
         if commit:
             user.profile.save()

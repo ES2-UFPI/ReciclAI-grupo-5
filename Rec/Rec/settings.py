@@ -30,7 +30,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "reciclAI",
+    "reciclAI.apps.reciclAIConfig",
 ]
 
 MIDDLEWARE = [
@@ -43,7 +43,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "Rec.urls"
+ROOT_URLCONF = "mysite.urls"
 
 TEMPLATES = [
     {
@@ -61,8 +61,7 @@ TEMPLATES = [
     },
 ]
 
-
-WSGI_APPLICATION = "Rec.wsgi.application"
+WSGI_APPLICATION = "mysite.wsgi.application"
 
 
 # Database
@@ -117,10 +116,10 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "reciclAI:dashboard"
 LOGOUT_REDIRECT_URL = "reciclAI:public_index"
+
 
 CSRF_TRUSTED_ORIGINS = (
     [f"https://{os.environ.get('WEB_HOST')}"] if "WEB_HOST" in os.environ else []
