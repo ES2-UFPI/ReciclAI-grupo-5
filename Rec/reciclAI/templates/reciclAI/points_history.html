@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}Meu Histórico de Pontos - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h1 class="mb-0">Meu Histórico de Pontos</h1>
+                    <a href="{% url 'reciclAI:dashboard' %}" class="btn btn-secondary">Voltar ao Dashboard</a>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-success text-center">
+                        <h3>Saldo Atual: <strong>{{ profile.points }}</strong> ponto(s)</h3>
+                    </div>
+
+                    <h3 class="mt-4">Transações Recentes</h3>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Descrição</th>
+                                    <th class="text-end">Pontos</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in transactions %}
+                                    <tr>
+                                        <td>{{ transaction.transaction_date|date:"d/m/Y H:i" }}</td>
+                                        <td>{{ transaction.description }}</td>
+                                        <td class="text-end {% if transaction.points_gained > 0 %}text-success{% else %}text-danger{% endif %}">
+                                            {% if transaction.points_gained > 0 %}+{% endif %}{{ transaction.points_gained }}
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="text-center">Você ainda não tem transações de pontos.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

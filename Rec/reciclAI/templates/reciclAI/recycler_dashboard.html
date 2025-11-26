@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard da Recicladora - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Painel da Recicladora</h1>
+
+    <!-- Seção de Coletas para Processar -->
+    <div class="card mb-5">
+        <div class="card-header">
+            <h3>Coletas Entregues Aguardando Processamento</h3>
+        </div>
+        <div class="card-body">
+            {% if collections_to_process %}
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Resíduo</th>
+                            <th>Cidadão</th>
+                            <th>Coletor</th>
+                            <th>Data da Entrega</th>
+                            <th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for collection in collections_to_process %}
+                            <tr>
+                                <td>{{ collection.residue.residue_type }}</td>
+                                <td>{{ collection.residue.citizen.username }}</td>
+                                <td>{{ collection.collector.username|default:"N/A" }}</td>
+                                <td>{{ collection.updated_at|date:"d/m/Y H:i" }}</td>
+                                <td>
+                                    <a href="{% url 'reciclAI:process_collection' collection.id %}" class="btn btn-primary btn-sm">Processar</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>Não há coletas aguardando processamento no momento.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Seção de Últimas Coletas Processadas -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Últimas 10 Coletas Processadas</h3>
+        </div>
+        <div class="card-body">
+            {% if processed_collections %}
+                <ul class="list-group">
+                    {% for collection in processed_collections %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Resíduo de <strong>{{ collection.residue.residue_type }}</strong> do cidadão <strong>{{ collection.residue.citizen.username }}</strong></span>
+                            <span class="badge bg-success rounded-pill">{{ collection.processed_at|date:"d/m/Y H:i" }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Nenhuma coleta foi processada ainda.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

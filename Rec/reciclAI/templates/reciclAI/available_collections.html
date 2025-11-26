@@ -1,0 +1,39 @@
+{% extends 'base.html' %} {% block title %}Coletas Disponíveis{% endblock %} {% block content %}
+<h1>Coletas Disponíveis</h1>
+<ul class="list-group">
+  {% for collection in available_collections %}
+  <li class="list-group-item d-flex justify-content-between align-items-center">
+    <div>
+      <strong>{{ collection.residue.residue_type }}</strong>
+      <div class="text-muted">{{ collection.residue.location }}</div>
+    </div>
+    <a class="btn btn-sm btn-success" href="{% url 'reciclAI:accept_collection' collection.id %}">
+      Aceitar
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+
+<h1 class="mt-5">Minhas Coletas</h1>
+<ul class="list-group">
+  {% for collection in accepted_collections %}
+  <li class="list-group-item">
+    <div>
+      <strong>{{ collection.residue.residue_type }}</strong>
+      <div class="text-muted">{{ collection.residue.location }}</div>
+    </div>
+    <form class="form-inline mt-2" action="{% url 'reciclAI:update_collection_status' collection.id %}" method="post">
+      {% csrf_token %}
+      <select class="form-control form-control-sm mr-2" name="status">
+        <option value="E" {% if collection.status == 'E' %}selected{% endif %}>Em rota</option>
+        <option value="C" {% if collection.status == 'C' %}selected{% endif %}>Coletada</option>
+        <option value'N' {% if collection.status == 'N' %}selected{% endif %}>Entregue</option>
+      </select>
+      <button class="btn btn-sm btn-primary" type="submit">
+        Atualizar
+      </button>
+    </form>
+  </li>
+  {% endfor %}
+</ul>
+{% endblock %}

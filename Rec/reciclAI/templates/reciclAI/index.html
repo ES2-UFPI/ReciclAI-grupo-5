@@ -1,0 +1,21 @@
+{% extends 'base.html' %} {% block title %}Bem-vindo ao Reciclaí{% endblock %} {% block content %}
+<h1>Bem-vindo ao Reciclaí</h1>
+
+<h2>Cidadão</h2>
+<ul>
+  <li><a href="{% url 'reciclAI:residue_create' %}">Cadastrar Resíduo</a></li>
+  <li><a href="{% url 'reciclAI:collection_status' %}">Acompanhar Status da Coleta</a></li>
+  <li><a href="{% url 'reciclAI:points_view' %}">Meus Pontos</a></li>
+  <li><a href="{% url 'reciclAI:rewards_list' %}">Ver Recompensas</a></li>
+</ul>
+
+<h2>Coletor</h2>
+<ul>
+  <li><a href="{% url 'reciclAI:available_collections' %}">Coletas Disponíveis</a></li>
+</ul>
+
+<h2>Recicladora</h2>
+<ul>
+  <li><a href="{% url 'reciclAI:recycler_received' %}">Resíduos Recebidos</a></li>
+</ul>
+{% endblock %}
