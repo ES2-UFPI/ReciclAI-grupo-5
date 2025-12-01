@@ -1,65 +1,32 @@
-name: CI/CD Pipeline
+name: CI Pipeline
 
 on:
-  push:
+  pull_request:
     branches: [ "main", "dev" ]
 
 jobs:
-  # --- JOBS DE INTEGRAÇÃO (TESTES) ---
   tests:
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v4
-      
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
       - name: Configurar Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-          
-      - name: Instalar Dependências
-        run: |
-          # Entra na pasta Rec para achar o arquivo
-          cd Rec
-          pip install -r requirements.txt
-          
-      - name: Rodar Testes
-        run: |
-          cd Rec
-          python manage.py test
 
-  # --- JOB DE DEPLOY (SÓ NA MAIN) ---
-  deploy:
-    needs: tests
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Deploy na Azure via SSH
-        uses: appleboy/ssh-action@v1.0.0
+      - name: Cache de dependências
+        uses: actions/cache@v3
         with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.KEY }}
-          script: |
-            # 1. Entra na raiz para baixar o código do Git
-            cd /home/azureuser/app
-            git checkout main
-            git pull origin main
-            
-            # 2. Ativa o ambiente virtual (que está na raiz app/venv)
-            source venv/bin/activate
-            
-            # 3. Entra na pasta do projeto (ONDE ESTÁ O MANAGE.PY)
-            cd Rec
-            
-            # 4. Instala dependências novas
-            pip install -r requirements.txt
-            
-            # 5. Atualiza o banco de dados
-            python manage.py migrate
-            
-            # 6. Coleta os arquivos estáticos (Arruma o CSS/Cores)
-            python manage.py collectstatic --noinput
-            
-            # 7. Reinicia o servidor para aplicar tudo
-            sudo systemctl restart gunicorn
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('Rec/requirements.txt') }}
+
+      - name: Instalar dependências
+        working-directory: Rec
+        run: pip install -r requirements.txt
+
+      - name: Rodar testes
+        working-directory: Rec
+        run: python manage.py test
