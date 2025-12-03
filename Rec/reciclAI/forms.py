@@ -33,19 +33,27 @@ class CustomUserCreationForm(UserCreationForm):
 
 class ResidueForm(forms.ModelForm):
     collection_date = forms.DateField(
-        label="Data para Coleta (Opcional)",
+        label="Data para Coleta",
         widget=forms.DateInput(attrs={"type": "date"}),
-        required=False,
+        required=True,
     )
+    latitude = forms.DecimalField(widget=forms.HiddenInput())
+    longitude = forms.DecimalField(widget=forms.HiddenInput())
 
     class Meta:
         model = Residue
-        fields = ["residue_type", "weight", "units", "location", "collection_date"]
+        fields = [
+            "residue_type",
+            "weight",
+            "units",
+            "collection_date",
+            "latitude",
+            "longitude",
+        ]
         labels = {
             "residue_type": "Tipo de Resíduo",
             "weight": "Peso (kg)",
             "units": "Unidades",
-            "location": "Endereço de Coleta",
         }
         help_texts = {
             "weight": "Informe um valor aproximado.",
