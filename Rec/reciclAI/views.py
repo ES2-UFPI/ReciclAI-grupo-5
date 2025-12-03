@@ -93,13 +93,11 @@ def residue_create(request):
     if request.method == "POST":
         form = ResidueForm(request.POST)
         if form.is_valid():
-            # Salva o resíduo
             residue = form.save(commit=False)
             residue.citizen = request.user
-            residue.status = "COLETA_SOLICITADA"  # Status atualizado
+            residue.status = "COLETA_SOLICITADA"
             residue.save()
 
-            # Cria a coleta associada com as coordenadas
             Collection.objects.create(
                 residue=residue,
                 status="SOLICITADA",
@@ -114,14 +112,7 @@ def residue_create(request):
     else:
         form = ResidueForm()
 
-    # Passa as credenciais do Mapbox para o template
-    return render(
-        request,
-        "reciclAI/residue_form.html",
-        {
-            "form": form,
-        },
-    )
+    return render(request, "reciclAI/residue_form.html", {"form": form})
 
 
 @citizen_required
@@ -136,9 +127,6 @@ def collection_status(request):
 
 @citizen_required
 def points_history(request):
-    """
-    Exibe o saldo de pontos e o histórico de transações do cidadão.
-    """
     profile = request.user.profile
     transactions = PointsTransaction.objects.filter(user=request.user).order_by(
         "-transaction_date"
@@ -154,9 +142,6 @@ def points_history(request):
 # --- Sistema de Recompensas ---
 @citizen_required
 def rewards_list(request):
-    """
-    Lista todas as recompensas ativas que o cidadão pode resgatar.
-    """
     rewards = Reward.objects.filter(is_active=True).order_by("points_required")
     user_points = request.user.profile.points
     context = {
@@ -169,21 +154,15 @@ def rewards_list(request):
 @citizen_required
 @transaction.atomic
 def redeem_reward(request, reward_id):
-    """
-    Processa o resgate de uma recompensa, se o usuário tiver pontos suficientes.
-    """
     reward = get_object_or_404(Reward, id=reward_id, is_active=True)
     profile = request.user.profile
 
     if profile.points >= reward.points_required:
-        # Deduz os pontos
         profile.points -= reward.points_required
         profile.save()
 
-        # Registra o resgate
         UserReward.objects.create(user=request.user, reward=reward)
 
-        # Opcional: registrar a transação de "gasto" de pontos
         PointsTransaction.objects.create(
             user=request.user,
             points_gained=-reward.points_required,
@@ -204,7 +183,6 @@ def redeem_reward(request, reward_id):
 # --- Fluxo do Coletor (Existente) ---
 @collector_required
 def collector_dashboard(request):
-    # Seleciona apenas coletas com coordenadas válidas
     available_collections = Collection.objects.filter(
         status="SOLICITADA", latitude__isnull=False, longitude__isnull=False
     ).order_by("created_at")
@@ -247,8 +225,6 @@ def accept_collection(request, collection_id):
 def collection_transition(request, collection_id):
     collection = get_object_or_404(Collection, id=collection_id)
 
-    # Garante que apenas o coletor responsável ou um coletor novo (para coletas 'SOLICITADA')
-    # possa acessar esta view.
     if collection.status != "SOLICITADA" and collection.collector != request.user:
         messages.error(
             request, "Você não tem permissão para alterar o status desta coleta."
@@ -275,17 +251,12 @@ def collection_transition(request, collection_id):
 
 @recycler_required
 def recycler_dashboard(request):
-    """
-    Dashboard da recicladora, mostrando coletas entregues e prontas para processamento.
-    """
     collections_to_process = Collection.objects.filter(
         status="ENTREGUE_RECICLADORA"
     ).order_by("updated_at")
     processed_collections = Collection.objects.filter(status="PROCESSADO").order_by(
         "-processed_at"
-    )[
-        :10
-    ]  # Mostra as 10 últimas
+    )[:10]
 
     context = {
         "collections_to_process": collections_to_process,
@@ -307,24 +278,19 @@ def process_collection(request, collection_id):
         residue = collection.residue
         citizen_profile = residue.citizen.profile
 
-        # Define a quantidade de pontos a serem ganhos
-        points_to_award = 10  # Exemplo: 10 pontos por coleta processada
+        points_to_award = 10
 
-        # Adiciona os pontos ao perfil do cidadão
         citizen_profile.points += points_to_award
 
-        # Cria um registro da transação de pontos
         PointsTransaction.objects.create(
             user=residue.citizen,
             points_gained=points_to_award,
             description=f"Coleta de {residue.residue_type} processada.",
         )
 
-        # Atualiza o status da coleta
         collection.status = "PROCESSADO"
         collection.processed_at = timezone.now()
 
-        # Salva todas as alterações
         collection.save()
         citizen_profile.save()
 

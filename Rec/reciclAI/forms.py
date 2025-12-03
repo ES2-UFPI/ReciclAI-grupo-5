@@ -32,24 +32,17 @@ class CustomUserCreationForm(UserCreationForm):
 
 
 class ResidueForm(forms.ModelForm):
+    latitude = forms.DecimalField(widget=forms.HiddenInput())
+    longitude = forms.DecimalField(widget=forms.HiddenInput())
     collection_date = forms.DateField(
         label="Data para Coleta",
         widget=forms.DateInput(attrs={"type": "date"}),
         required=True,
     )
-    latitude = forms.DecimalField(widget=forms.HiddenInput())
-    longitude = forms.DecimalField(widget=forms.HiddenInput())
 
     class Meta:
         model = Residue
-        fields = [
-            "residue_type",
-            "weight",
-            "units",
-            "collection_date",
-            "latitude",
-            "longitude",
-        ]
+        fields = ["residue_type", "weight", "units", "collection_date"]
         labels = {
             "residue_type": "Tipo de Resíduo",
             "weight": "Peso (kg)",
@@ -99,10 +92,8 @@ class CollectionStatusForm(forms.ModelForm):
 
         current_status = self.instance.status
 
-        # Define as transições permitidas para o status atual
         allowed_transitions = self.STATUS_TRANSITIONS.get(current_status, [])
 
-        # O campo de status só é habilitado se houver transições permitidas
         if allowed_transitions:
             self.fields["status"].choices = [
                 (
@@ -123,7 +114,6 @@ class CollectionStatusForm(forms.ModelForm):
             )
 
     def clean_status(self):
-        # Garante que a transição de status é válida
         current_status = self.instance.status
         next_status = self.cleaned_data.get("status")
 
@@ -131,7 +121,6 @@ class CollectionStatusForm(forms.ModelForm):
             status[0] for status in self.STATUS_TRANSITIONS.get(current_status, [])
         ]
 
-        # Permite que o status atual seja "selecionado" sem alterações
         if next_status == current_status:
             return next_status
 
@@ -143,7 +132,6 @@ class CollectionStatusForm(forms.ModelForm):
         return next_status
 
     def save(self, commit=True):
-        # Atribui o coletor se a transição for de 'SOLICITADA' para 'ATRIBUIDA'
         if (
             self.instance.status == "SOLICITADA"
             and self.cleaned_data.get("status") == "ATRIBUIDA"
