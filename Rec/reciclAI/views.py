@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login
 from django.db import transaction
@@ -8,6 +8,8 @@ from django.contrib import messages
 from django.utils import timezone
 from .models import Residue, Collection, Profile, PointsTransaction, Reward, UserReward
 from .forms import CustomUserCreationForm, ResidueForm, CollectionStatusForm
+from django.db.models import F
+from math import radians, sin, cos, sqrt, atan2
 
 # --- Views Públicas e de Autenticação ---
 
@@ -86,37 +88,40 @@ def residue_list(request):
 
 
 @citizen_required
+@transaction.atomic
 def residue_create(request):
     if request.method == "POST":
         form = ResidueForm(request.POST)
         if form.is_valid():
+            # Salva o resíduo
             residue = form.save(commit=False)
             residue.citizen = request.user
+            residue.status = "COLETA_SOLICITADA"  # Status atualizado
             residue.save()
-            messages.success(
-                request,
-                "Resíduo cadastrado com sucesso! Agora você pode solicitar a coleta.",
+
+            # Cria a coleta associada com as coordenadas
+            Collection.objects.create(
+                residue=residue,
+                status="SOLICITADA",
+                latitude=form.cleaned_data["latitude"],
+                longitude=form.cleaned_data["longitude"],
             )
-            return redirect("reciclAI:residue_list")
+
+            messages.success(
+                request, "Sua solicitação de coleta foi registrada com sucesso!"
+            )
+            return redirect("reciclAI:collection_status")
     else:
         form = ResidueForm()
-    return render(request, "reciclAI/residue_form.html", {"form": form})
 
-
-@citizen_required
-@transaction.atomic
-def request_collection(request, residue_id):
-    residue = get_object_or_404(Residue, id=residue_id, citizen=request.user)
-    if residue.status != "AGUARDANDO_SOLICITACAO_DE_COLETA":
-        messages.error(
-            request, "Este resíduo já teve sua coleta solicitada ou finalizada."
-        )
-        return redirect("reciclAI:residue_list")
-    Collection.objects.create(residue=residue, status="SOLICITADA")
-    residue.status = "COLETA_SOLICITADA"
-    residue.save()
-    messages.success(request, "Coleta solicitada com sucesso!")
-    return redirect("reciclAI:collection_status")
+    # Passa as credenciais do Mapbox para o template
+    return render(
+        request,
+        "reciclAI/residue_form.html",
+        {
+            "form": form,
+        },
+    )
 
 
 @citizen_required
@@ -199,13 +204,16 @@ def redeem_reward(request, reward_id):
 # --- Fluxo do Coletor (Existente) ---
 @collector_required
 def collector_dashboard(request):
-    available_collections = Collection.objects.filter(status="SOLICITADA").order_by(
-        "created_at"
-    )
+    # Seleciona apenas coletas com coordenadas válidas
+    available_collections = Collection.objects.filter(
+        status="SOLICITADA", latitude__isnull=False, longitude__isnull=False
+    ).order_by("created_at")
+
     my_collections_status = ["ATRIBUIDA", "EM_ROTA", "COLETADA"]
     my_collections = Collection.objects.filter(
         collector=request.user, status__in=my_collections_status
     ).order_by("-updated_at")
+
     context = {
         "available_collections": available_collections,
         "my_collections": my_collections,
