@@ -20,7 +20,6 @@
                                 <h5 class="mb-1">{{ collection.residue.residue_type }}</h5>
                                 <small>Última atualização: {{ collection.updated_at|date:"d/m/Y H:i" }}</small>
                             </div>
-                            <p class="mb-1"><strong>Localização:</strong> {{ collection.residue.location }}</p>
                             <p class="mb-1"><strong>Status:</strong> <span class="badge bg-info">{{ collection.get_status_display }}</span></p>
                             <a href="{% url 'reciclAI:collection_transition' collection.id %}" class="btn btn-primary btn-sm mt-2">Atualizar Status</a>
                         </div>
@@ -36,6 +35,7 @@
     <div class="card">
         <div class="card-header">
             <h3>Coletas Disponíveis para Aceitar</h3>
+            <button id="sort-by-distance" class="btn btn-secondary btn-sm mt-2" disabled>Ordenar por Distância</button>
         </div>
         <div class="card-body">
             {% if available_collections %}
@@ -43,16 +43,20 @@
                     <thead>
                         <tr>
                             <th>Resíduo</th>
-                            <th>Localização</th>
+                            <th class="distance-header" style="display: none;">Distância</th>
                             <th>Data da Solicitação</th>
                             <th>Ação</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="collections-tbody">
                         {% for collection in available_collections %}
-                            <tr>
+                            <tr
+                                class="collection-row"
+                                data-latitude="{{ collection.latitude }}"
+                                data-longitude="{{ collection.longitude }}"
+                            >
                                 <td>{{ collection.residue.residue_type }}</td>
-                                <td>{{ collection.residue.location }}</td>
+                                <td class="distance-cell" style="display: none;">Calculando...</td>
                                 <td>{{ collection.created_at|date:"d/m/Y" }}</td>
                                 <td>
                                     <form action="{% url 'reciclAI:accept_collection' collection.id %}" method="post" class="d-inline">
@@ -70,4 +74,70 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sortButton = document.getElementById('sort-by-distance');
+    const tbody = document.getElementById('collections-tbody');
+    const rows = Array.from(tbody.getElementsByClassName('collection-row'));
+
+    function haversineDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; // Raio da Terra em km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c; // Distância em km
+    }
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                const userLat = position.coords.latitude;
+                const userLon = position.coords.longitude;
+
+                document.querySelector('.distance-header').style.display = 'table-cell';
+
+                rows.forEach(row => {
+                    const collectionLat = parseFloat(row.dataset.latitude);
+                    const collectionLon = parseFloat(row.dataset.longitude);
+                    
+                    const distance = haversineDistance(userLat, userLon, collectionLat, collectionLon);
+                    row.dataset.distance = distance;
+                    
+                    const distanceCell = row.querySelector('.distance-cell');
+                    distanceCell.textContent = `${distance.toFixed(2)} km`;
+                    distanceCell.style.display = 'table-cell';
+                });
+
+                sortButton.disabled = false;
+            },
+            function() {
+                console.warn('Geolocalização negada. A ordenação por distância não está disponível.');
+                sortButton.textContent = 'Geolocalização indisponível';
+            }
+        );
+    } else {
+        console.warn('Navegador não suporta Geolocalização.');
+        sortButton.textContent = 'Geolocalização indisponível';
+    }
+
+    sortButton.addEventListener('click', function() {
+        rows.sort((a, b) => {
+            const distA = parseFloat(a.dataset.distance);
+            const distB = parseFloat(b.dataset.distance);
+            return distA - distB;
+        });
+
+        // Limpa e reapenda as linhas ordenadas
+        tbody.innerHTML = '';
+        rows.forEach(row => tbody.appendChild(row));
+    });
+});
+</script>
 {% endblock %}
