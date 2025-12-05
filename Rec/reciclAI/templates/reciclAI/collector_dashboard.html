@@ -20,8 +20,13 @@
                                 <h5 class="mb-1">{{ collection.residue.residue_type }}</h5>
                                 <small>Última atualização: {{ collection.updated_at|date:"d/m/Y H:i" }}</small>
                             </div>
-                            <p class="mb-1"><strong>Status:</strong> <span class="badge bg-info">{{ collection.get_status_display }}</span></p>
-                            <a href="{% url 'reciclAI:collection_transition' collection.id %}" class="btn btn-primary btn-sm mt-2">Atualizar Status</a>
+                            <p class="mb-1">
+                                <strong>Localização:</strong> 
+                                <small>Lat: {{ collection.latitude|floatformat:4 }}, Lon: {{ collection.longitude|floatformat:4 }}</small>
+                                <a href="https://www.google.com/maps/search/?api=1&query={{ collection.latitude }},{{ collection.longitude }}" target="_blank" class="badge bg-info text-dark ms-2">Ver no mapa</a>
+                            </p>
+                            <p class="mb-1"><strong>Status:</strong> <span class="badge bg-primary">{{ collection.get_status_display }}</span></p>
+                            <a href="{% url 'reciclAI:collection_transition' collection.id %}" class="btn btn-secondary btn-sm mt-2">Atualizar Status</a>
                         </div>
                     {% endfor %}
                 </div>
@@ -35,7 +40,7 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <div>
-                <h3>Coletas Disponíveis</h3>
+                <h3>Coletas Disponíveis para Aceitar</h3>
                 {% if location_shared %}
                     <p class="mb-0 text-success"><small>Ordenado por distância (do mais próximo ao mais distante).</small></p>
                 {% else %}
@@ -51,21 +56,24 @@
                         <thead>
                             <tr>
                                 <th>Resíduo</th>
+                                <th>Localização</th>
                                 {% if location_shared %}
                                     <th>Distância</th>
                                 {% endif %}
-                                <th>Data da Solicitação</th>
                                 <th>Ação</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for collection in available_collections %}
                                 <tr>
-                                    <td>{{ collection.residue.residue_type }}</td>
+                                    <td><strong>{{ collection.residue.residue_type }}</strong></td>
+                                    <td>
+                                        <small>Lat: {{ collection.latitude|floatformat:4 }}, Lon: {{ collection.longitude|floatformat:4 }}</small>
+                                        <a href="https://www.google.com/maps/search/?api=1&query={{ collection.latitude }},{{ collection.longitude }}" target="_blank" class="d-block mt-1">Ver no mapa</a>
+                                    </td>
                                     {% if location_shared and collection.distance is not None %}
                                         <td><strong>{{ collection.distance|floatformat:2 }} km</strong></td>
                                     {% endif %}
-                                    <td>{{ collection.created_at|date:"d/m/Y" }}</td>
                                     <td>
                                         <form action="{% url 'reciclAI:accept_collection' collection.id %}" method="post" class="d-inline">
                                             {% csrf_token %}
@@ -103,7 +111,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
             
-            // Recarrega a página com as coordenadas na URL
             const currentUrl = new URL(window.location.href);
             currentUrl.searchParams.set('lat', lat.toFixed(6));
             currentUrl.searchParams.set('lon', lon.toFixed(6));

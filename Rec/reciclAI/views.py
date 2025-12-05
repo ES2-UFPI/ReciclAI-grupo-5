@@ -263,7 +263,7 @@ def accept_collection(request, collection_id):
 
     collection = get_object_or_404(Collection, id=collection_id)
 
-    if collection.status != "SOLICITTA":
+    if collection.status != "SOLICITADA":
         messages.error(request, "Esta coleta não está mais disponível.")
         return redirect("reciclAI:collector_dashboard")
 
