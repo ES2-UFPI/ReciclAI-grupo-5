@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load l10n %}
 
 {% block title %}Atualizar Status da Coleta - {{ block.super }}{% endblock %}
 
@@ -18,7 +19,9 @@
                         <p>
                             <strong>Localização:</strong> 
                             <small>Lat: {{ collection.latitude|floatformat:4 }}, Lon: {{ collection.longitude|floatformat:4 }}</small>
+                            {% localize off %}
                             <a href="https://www.google.com/maps/search/?api=1&query={{ collection.latitude }},{{ collection.longitude }}" target="_blank" class="badge bg-info text-dark ms-2">Ver no mapa</a>
+                            {% endlocalize %}
                         </p>
                         <p><strong>Status Atual:</strong> <span class="badge bg-primary">{{ collection.get_status_display }}</span></p>
                     </div>

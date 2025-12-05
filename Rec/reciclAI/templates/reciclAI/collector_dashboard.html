@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load l10n %}
 
 {% block title %}Dashboard do Coletor - {{ block.super }}{% endblock %}
 
@@ -23,7 +24,9 @@
                             <p class="mb-1">
                                 <strong>Localização:</strong> 
                                 <small>Lat: {{ collection.latitude|floatformat:4 }}, Lon: {{ collection.longitude|floatformat:4 }}</small>
+                                {% localize off %}
                                 <a href="https://www.google.com/maps/search/?api=1&query={{ collection.latitude }},{{ collection.longitude }}" target="_blank" class="badge bg-info text-dark ms-2">Ver no mapa</a>
+                                {% endlocalize %}
                             </p>
                             <p class="mb-1"><strong>Status:</strong> <span class="badge bg-primary">{{ collection.get_status_display }}</span></p>
                             <a href="{% url 'reciclAI:collection_transition' collection.id %}" class="btn btn-secondary btn-sm mt-2">Atualizar Status</a>
@@ -69,7 +72,9 @@
                                     <td><strong>{{ collection.residue.residue_type }}</strong></td>
                                     <td>
                                         <small>Lat: {{ collection.latitude|floatformat:4 }}, Lon: {{ collection.longitude|floatformat:4 }}</small>
+                                        {% localize off %}
                                         <a href="https://www.google.com/maps/search/?api=1&query={{ collection.latitude }},{{ collection.longitude }}" target="_blank" class="d-block mt-1">Ver no mapa</a>
+                                        {% endlocalize %}
                                     </td>
                                     {% if location_shared and collection.distance is not None %}
                                         <td><strong>{{ collection.distance|floatformat:2 }} km</strong></td>
@@ -116,7 +121,6 @@ document.addEventListener('DOMContentLoaded', function() {
             currentUrl.searchParams.set('lat', lat.toFixed(6));
             currentUrl.searchParams.set('lon', lon.toFixed(6));
             
-            // Recarrega a página apenas se a URL for diferente
             if (window.location.href !== currentUrl.href) {
                 window.location.href = currentUrl.toString();
             } else {
@@ -131,13 +135,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Tenta obter a localização ao carregar a página, se ainda não tiver sido compartilhada
     const currentUrlParams = new URLSearchParams(window.location.search);
     if (!currentUrlParams.has('lat') || !currentUrlParams.has('lon')) {
         fetchLocationAndReload();
     }
 
-    // Adiciona o evento de clique ao botão para atualização manual
     getLocationBtn.addEventListener('click', fetchLocationAndReload);
 });
 </script>
