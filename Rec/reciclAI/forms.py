@@ -38,22 +38,10 @@ class ResidueForm(forms.ModelForm):
     longitude = forms.DecimalField(
         required=True, widget=forms.HiddenInput(attrs={"required": "true"})
     )
-    collection_date = forms.DateField(
-        label="Data para Coleta",
-        widget=forms.DateInput(attrs={"type": "date"}),
-        required=True,
-    )
 
     class Meta:
         model = Residue
-        fields = [
-            "residue_type",
-            "weight",
-            "units",
-            "collection_date",
-            "latitude",
-            "longitude",
-        ]
+        fields = ["residue_type", "weight", "units", "latitude", "longitude"]
         labels = {
             "residue_type": "Tipo de Resíduo",
             "weight": "Peso (kg)",

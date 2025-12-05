@@ -125,6 +125,7 @@ def residue_create(request):
             residue = form.save(commit=False)
             residue.citizen = request.user
             residue.status = "COLETA_SOLICITADA"
+            residue.collection_date = timezone.now().date()
             residue.save()
 
             Collection.objects.create(

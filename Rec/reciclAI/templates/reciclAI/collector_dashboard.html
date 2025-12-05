@@ -44,10 +44,10 @@
                 {% if location_shared %}
                     <p class="mb-0 text-success"><small>Ordenado por distância (do mais próximo ao mais distante).</small></p>
                 {% else %}
-                    <p class="mb-0 text-muted"><small>Ordenado por data de solicitação.</small></p>
+                    <p class="mb-0 text-muted"><small>Para ordenar por distância, permita o acesso à sua localização.</small></p>
                 {% endif %}
             </div>
-            <button id="get-location-btn" class="btn btn-secondary">Ordenar por Distância</button>
+            <button id="get-location-btn" class="btn btn-secondary">Atualizar Localização</button>
         </div>
         <div class="card-body">
             {% if available_collections %}
@@ -98,14 +98,15 @@
 document.addEventListener('DOMContentLoaded', function() {
     const getLocationBtn = document.getElementById('get-location-btn');
 
-    if (!navigator.geolocation) {
-        getLocationBtn.textContent = 'Geolocalização não suportada';
-        getLocationBtn.disabled = true;
-    }
+    function fetchLocationAndReload() {
+        if (!navigator.geolocation) {
+            getLocationBtn.textContent = 'Geolocalização não suportada';
+            getLocationBtn.disabled = true;
+            return;
+        }
 
-    getLocationBtn.addEventListener('click', function() {
-        this.textContent = 'Obtendo localização...';
-        this.disabled = true;
+        getLocationBtn.textContent = 'Obtendo localização...';
+        getLocationBtn.disabled = true;
 
         navigator.geolocation.getCurrentPosition(function(position) {
             const lat = position.coords.latitude;
@@ -115,14 +116,29 @@ document.addEventListener('DOMContentLoaded', function() {
             currentUrl.searchParams.set('lat', lat.toFixed(6));
             currentUrl.searchParams.set('lon', lon.toFixed(6));
             
-            window.location.href = currentUrl.toString();
+            // Recarrega a página apenas se a URL for diferente
+            if (window.location.href !== currentUrl.href) {
+                window.location.href = currentUrl.toString();
+            } else {
+                getLocationBtn.textContent = 'Atualizar Localização';
+                getLocationBtn.disabled = false;
+            }
 
         }, function(error) {
-            alert('Não foi possível obter sua localização. Por favor, verifique as permissões do seu navegador.');
-            getLocationBtn.textContent = 'Ordenar por Distância';
+            console.warn('Não foi possível obter a localização: ' + error.message);
+            getLocationBtn.textContent = 'Permitir Localização';
             getLocationBtn.disabled = false;
         });
-    });
+    }
+
+    // Tenta obter a localização ao carregar a página, se ainda não tiver sido compartilhada
+    const currentUrlParams = new URLSearchParams(window.location.search);
+    if (!currentUrlParams.has('lat') || !currentUrlParams.has('lon')) {
+        fetchLocationAndReload();
+    }
+
+    // Adiciona o evento de clique ao botão para atualização manual
+    getLocationBtn.addEventListener('click', fetchLocationAndReload);
 });
 </script>
 {% endblock %}
