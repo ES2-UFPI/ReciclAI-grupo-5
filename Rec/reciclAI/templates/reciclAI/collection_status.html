@@ -9,34 +9,53 @@
         <a href="{% url 'reciclAI:residue_list' %}" class="btn btn-secondary">Voltar para Meus Resíduos</a>
     </div>
 
-    <p>Acompanhe o andamento das suas solicitações de coleta.</p>
+    <p>Acompanhe o andamento detalhado das suas solicitações de coleta.</p>
 
     {% if collections %}
-        <div class="list-group">
-            {% for collection in collections %}
-                <div class="list-group-item">
-                    <div class="d-flex w-100 justify-content-between">
-                        <h5 class="mb-1">{{ collection.residue.residue_type }}</h5>
-                        <small class="text-muted">Última atualização: {{ collection.updated_at|date:"d/m/Y H:i" }}</small>
-                    </div>
-                    <p class="mb-1">
-                        <strong>Localização:</strong> {{ collection.residue.location }}
-                    </p>
-                    <p class="mb-0">
-                        <strong>Status:</strong>
-                        <span class="badge 
-                            {% if collection.status == 'SOLICITADA' %}bg-primary
-                            {% elif collection.status == 'ATRIBUIDA' %}bg-info
-                            {% elif collection.status == 'EM_ROTA' %}bg-warning text-dark
-                            {% elif collection.status == 'COLETADA' %}bg-success
-                            {% elif collection.status == 'ENTREGUE_RECICLADORA' %}bg-dark
-                            {% else %}bg-secondary
-                            {% endif %}">
-                            {{ collection.get_status_display }}
-                        </span>
-                    </p>
-                </div>
-            {% endfor %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">Resíduo</th>
+                        <th scope="col">Localização</th>
+                        <th scope="col">Coletor</th>
+                        <th scope="col">Última Atualização</th>
+                        <th scope="col">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for collection in collections %}
+                        <tr>
+                            <td><strong>{{ collection.residue.residue_type }}</strong></td>
+                            <td>
+                                <small>Lat: {{ collection.latitude|floatformat:4 }}, Lon: {{ collection.longitude|floatformat:4 }}</small>
+                            </td>
+                            <td>
+                                {% if collection.collector %}
+                                    {{ collection.collector.username }}
+                                {% else %}
+                                    <span class="text-muted">Aguardando...</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ collection.updated_at|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <span class="badge rounded-pill
+                                    {% if collection.status == 'SOLICITADA' %}bg-secondary
+                                    {% elif collection.status == 'ATRIBUIDA' %}bg-info
+                                    {% elif collection.status == 'EM_ROTA' %}bg-primary
+                                    {% elif collection.status == 'COLETADA' %}bg-warning
+                                    {% elif collection.status == 'ENTREGUE_RECICLADORA' %}bg-dark
+                                    {% elif collection.status == 'PROCESSADO' %}bg-success
+                                    {% elif collection.status == 'CANCELADA' %}bg-danger
+                                    {% else %}bg-light text-dark
+                                    {% endif %}">
+                                    {{ collection.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     {% else %}
         <div class="alert alert-info" role="alert">

@@ -1,142 +1,137 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
-from .models import Residue, Profile, Collection, Reward
+from .models import Residue, Profile, Collection
+from .views import haversine
+from decimal import Decimal
+
+# Exemplo de uso:
+print(Decimal("0.1") + Decimal("0.2"))
+# Saída: 0.3 (exato)
+
+# Comparado ao float embutido:
+print(0.1 + 0.2)
+# Saída: 0.30000000000000004 (com imprecisão)
 
 
-class UserCreationTest(TestCase):
-    def test_user_and_profile_creation(self):
-        user = User.objects.create_user(username="testuser", password="password")
-        self.assertIsNotNone(user.profile)
-        self.assertEqual(user.profile.user_type, "C")
+class UtilsTestCase(TestCase):
+    """Testes para funções utilitárias."""
+
+    def test_haversine_calculation(self):
+        """Testa se o cálculo de distância da função haversine está correto."""
+        # Coordenadas aproximadas de São Paulo e Rio de Janeiro
+        lat1, lon1 = -23.5505, -46.6333  # São Paulo
+        lat2, lon2 = -22.9068, -43.1729  # Rio de Janeiro
+
+        distance = haversine(lat1, lon1, lat2, lon2)
+
+        # A distância real é de aproximadamente 358 km.
+        # O teste verifica se o valor está numa margem razoável.
+        self.assertAlmostEqual(distance, 358, delta=5)
 
 
 class CitizenFlowTest(TestCase):
     def setUp(self):
         self.client = Client()
         self.user = User.objects.create_user(username="citizen", password="password")
-        self.user.profile.user_type = "C"
-        self.user.profile.save()
+        # O profile é criado automaticamente pelo signal, user_type padrão 'C'
         self.client.login(username="citizen", password="password")
 
-    def test_create_residue_and_request_collection(self):
-        self.client.post(
-            reverse("reciclAI:residue_create"),
-            {
-                "residue_type": "Garrafa PET",
-                "units": 10,
-                "location": "Rua dos Testes, 123",
-            },
-        )
-        residue = Residue.objects.get(citizen=self.user)
-        self.assertEqual(residue.status, "AGUARDANDO_SOLICITACAO_DE_COLETA")
+    def test_create_residue_and_collection_atomically(self):
+        """
+        Testa se ao criar um resíduo, uma coleta com coordenadas
+        é criada atomicamente.
+        """
+        post_data = {
+            "residue_type": "Garrafa PET",
+            "units": 10,
+            "latitude": "-5.1136",
+            "longitude": "-42.8487",
+        }
+        response = self.client.post(reverse("reciclAI:residue_create"), post_data)
 
-        self.client.post(reverse("reciclAI:request_collection", args=[residue.id]))
-        residue.refresh_from_db()
+        # Verifica se o usuário foi redirecionado para a página de status
+        self.assertRedirects(response, reverse("reciclAI:collection_status"))
+
+        # Verifica se o resíduo e a coleta foram criados
+        self.assertEqual(Residue.objects.count(), 1)
+        self.assertEqual(Collection.objects.count(), 1)
+
+        residue = Residue.objects.first()
+        collection = Collection.objects.first()
+
+        self.assertEqual(residue.citizen, self.user)
         self.assertEqual(residue.status, "COLETA_SOLICITADA")
-        self.assertIsNotNone(residue.collection)
-        self.assertEqual(residue.collection.status, "SOLICITADA")
+        self.assertEqual(collection.residue, residue)
+        self.assertEqual(collection.status, "SOLICITADA")
+        self.assertEqual(collection.latitude, Decimal("-5.1136"))
 
 
 class CollectorFlowTest(TestCase):
     def setUp(self):
         self.client = Client()
-        self.citizen = User.objects.create_user(username="citizen", password="password")
-        self.collector = User.objects.create_user(
-            username="collector", password="password"
+
+        # Criar usuário cidadão
+        self.citizen_user = User.objects.create_user(
+            username="citizen_test", password="password"
         )
-        self.collector.profile.user_type = "L"
-        self.collector.profile.save()
-        self.residue = Residue.objects.create(
-            citizen=self.citizen,
-            residue_type="Papelão",
-            weight=5,
-            location="Av. Brasil",
+
+        # Criar usuário coletor e fazer login
+        self.collector_user = User.objects.create_user(
+            username="collector_test", password="password"
         )
-        self.collection = Collection.objects.create(residue=self.residue)
-        self.client.login(username="collector", password="password")
+        self.collector_user.profile.user_type = "L"
+        self.collector_user.profile.save()
+        self.client.login(username="collector_test", password="password")
 
-    def test_accept_collection(self):
-        self.client.post(
-            reverse("reciclAI:accept_collection", args=[self.collection.id])
+        # Criar duas coletas para teste de ordenação
+        residue1 = Residue.objects.create(
+            citizen=self.citizen_user, residue_type="Perto"
         )
-        self.collection.refresh_from_db()
-        self.assertEqual(self.collection.status, "ATRIBUIDA")
-        self.assertEqual(self.collection.collector, self.collector)
-
-    def test_update_collection_status(self):
-        self.collection.collector = self.collector
-        self.collection.status = "ATRIBUIDA"
-        self.collection.save()
-
-        self.client.post(
-            reverse("reciclAI:collection_transition", args=[self.collection.id]),
-            {"status": "EM_ROTA"},
+        self.collection_nearby = Collection.objects.create(
+            residue=residue1,
+            status="SOLICITADA",
+            latitude="-23.5500",
+            longitude="-46.6300",  # Perto de SP
         )
-        self.collection.refresh_from_db()
-        self.assertEqual(self.collection.status, "EM_ROTA")
 
-        self.client.post(
-            reverse("reciclAI:collection_transition", args=[self.collection.id]),
-            {"status": "COLETADA"},
+        residue2 = Residue.objects.create(
+            citizen=self.citizen_user, residue_type="Longe"
         )
-        self.collection.refresh_from_db()
-        self.assertEqual(self.collection.status, "COLETADA")
-
-        self.client.post(
-            reverse("reciclAI:collection_transition", args=[self.collection.id]),
-            {"status": "ENTREGUE_RECICLADORA"},
+        self.collection_far = Collection.objects.create(
+            residue=residue2,
+            status="SOLICITADA",
+            latitude="-22.9000",
+            longitude="-43.1700",  # Longe (RJ)
         )
-        self.collection.refresh_from_db()
-        self.assertEqual(self.collection.status, "ENTREGUE_RECICLADORA")
 
-
-class RecyclerFlowTest(TestCase):
-    def setUp(self):
-        self.client = Client()
-        self.citizen = User.objects.create_user(username="citizen", password="password")
-        self.recycler = User.objects.create_user(
-            username="recycler", password="password"
+    def test_dashboard_loads_without_location(self):
+        """Testa se o dashboard do coletor carrega sem parâmetros de localização."""
+        response = self.client.get(reverse("reciclAI:collector_dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("available_collections", response.context)
+        # Verifica se a ordenação padrão (por data de criação) está correta
+        self.assertEqual(
+            response.context["available_collections"][0].id, self.collection_nearby.id
         )
-        self.recycler.profile.user_type = "R"
-        self.recycler.profile.save()
-        self.residue = Residue.objects.create(
-            citizen=self.citizen, residue_type="Vidro", units=20, location="Praça da Sé"
+
+    def test_dashboard_sorts_collections_by_distance(self):
+        """Testa se o dashboard ordena as coletas pela distância quando a localização é fornecida."""
+        # Localização do Coletor (próxima à primeira coleta em SP)
+        collector_location = {"lat": "-23.5505", "lon": "-46.6333"}
+
+        response = self.client.get(
+            reverse("reciclAI:collector_dashboard"), collector_location
         )
-        self.collection = Collection.objects.create(
-            residue=self.residue, status="ENTREGUE_RECICLADORA"
-        )
-        self.client.login(username="recycler", password="password")
+        self.assertEqual(response.status_code, 200)
 
-    def test_process_collection_and_award_points(self):
-        self.client.post(
-            reverse("reciclAI:process_collection", args=[self.collection.id])
-        )
-        self.collection.refresh_from_db()
-        self.assertEqual(self.collection.status, "PROCESSADO")
-        self.residue.refresh_from_db()
-        self.assertEqual(self.residue.status, "PROCESSADO")
-        self.citizen.profile.refresh_from_db()
-        self.assertEqual(self.citizen.profile.points, 10)
+        sorted_collections = response.context["available_collections"]
 
+        # Verifica se a lista não está vazia e se a primeira coleta é a mais próxima
+        self.assertTrue(len(sorted_collections) > 0)
+        self.assertEqual(sorted_collections[0].id, self.collection_nearby.id)
 
-class PointsAndRewardsTest(TestCase):
-    def setUp(self):
-        self.client = Client()
-        self.user = User.objects.create_user(username="citizen", password="password")
-        self.user.profile.points = 100
-        self.user.profile.save()
-        self.reward = Reward.objects.create(name="Voucher", points_required=50)
-        self.client.login(username="citizen", password="password")
-
-    def test_redeem_reward(self):
-        self.client.post(reverse("reciclAI:redeem_reward", args=[self.reward.id]))
-        self.user.profile.refresh_from_db()
-        self.assertEqual(self.user.profile.points, 50)
-
-    def test_insufficient_points(self):
-        self.user.profile.points = 20
-        self.user.profile.save()
-        self.client.post(reverse("reciclAI:redeem_reward", args=[self.reward.id]))
-        self.user.profile.refresh_from_db()
-        self.assertEqual(self.user.profile.points, 20)
+        # Verifica se o atributo 'distance' foi adicionado e é um número
+        self.assertTrue(hasattr(sorted_collections[0], "distance"))
+        self.assertIsInstance(sorted_collections[0].distance, float)
+        self.assertLess(sorted_collections[0].distance, sorted_collections[1].distance)

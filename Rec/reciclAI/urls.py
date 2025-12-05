@@ -11,11 +11,6 @@ urlpatterns = [
     # --- Fluxo do Cidadão ---
     path("cidadao/residuos/", views.residue_list, name="residue_list"),
     path("cidadao/residuos/cadastrar/", views.residue_create, name="residue_create"),
-    path(
-        "cidadao/residuos/<int:residue_id>/solicitar-coleta/",
-        views.request_collection,
-        name="request_collection",
-    ),
     path("cidadao/coletas/", views.collection_status, name="collection_status"),
     path("cidadao/pontos/", views.points_history, name="points_history"),
     path("cidadao/recompensas/", views.rewards_list, name="rewards_list"),
