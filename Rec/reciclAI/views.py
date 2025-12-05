@@ -11,6 +11,31 @@ from .forms import CustomUserCreationForm, ResidueForm, CollectionStatusForm
 from django.db.models import F
 from math import radians, sin, cos, sqrt, atan2
 
+# --- Função Auxiliar de Geolocalização ---
+
+
+def haversine(lat1, lon1, lat2, lon2):
+    """
+    Calcula a distância em quilômetros entre duas coordenadas
+    geográficas usando a fórmula de Haversine.
+    """
+    R = 6371  # Raio da Terra em quilômetros
+
+    lat1_rad = radians(lat1)
+    lon1_rad = radians(lon1)
+    lat2_rad = radians(lat2)
+    lon2_rad = radians(lon2)
+
+    dlon = lon2_rad - lon1_rad
+    dlat = lat2_rad - lat1_rad
+
+    a = sin(dlat / 2) ** 2 + cos(lat1_rad) * cos(lat2_rad) * sin(dlon / 2) ** 2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+    distance = R * c
+    return distance
+
+
 # --- Views Públicas e de Autenticação ---
 
 
@@ -83,7 +108,11 @@ def recycler_required(view_func):
 # --- Fluxo do Cidadão (Existente) ---
 @citizen_required
 def residue_list(request):
-    residues = Residue.objects.filter(citizen=request.user).order_by("-created_at")
+    residues = (
+        Residue.objects.filter(citizen=request.user)
+        .select_related("collection")
+        .order_by("-created_at")
+    )
     return render(request, "reciclAI/residue_list.html", {"residues": residues})
 
 
@@ -183,9 +212,35 @@ def redeem_reward(request, reward_id):
 # --- Fluxo do Coletor (Existente) ---
 @collector_required
 def collector_dashboard(request):
-    available_collections = Collection.objects.filter(
-        status="SOLICITADA", latitude__isnull=False, longitude__isnull=False
-    ).order_by("created_at")
+    available_collections = list(
+        Collection.objects.filter(
+            status="SOLICITADA", latitude__isnull=False, longitude__isnull=False
+        ).order_by("created_at")
+    )
+
+    collector_lat = request.GET.get("lat")
+    collector_lon = request.GET.get("lon")
+
+    if collector_lat and collector_lon:
+        try:
+            collector_lat = float(collector_lat)
+            collector_lon = float(collector_lon)
+
+            for collection in available_collections:
+                collection.distance = haversine(
+                    collector_lat,
+                    collector_lon,
+                    float(collection.latitude),
+                    float(collection.longitude),
+                )
+
+            available_collections.sort(key=lambda c: c.distance)
+
+        except (ValueError, TypeError):
+            messages.warning(
+                request,
+                "Não foi possível processar sua localização. As coletas são exibidas por data.",
+            )
 
     my_collections_status = ["ATRIBUIDA", "EM_ROTA", "COLETADA"]
     my_collections = Collection.objects.filter(
@@ -195,6 +250,7 @@ def collector_dashboard(request):
     context = {
         "available_collections": available_collections,
         "my_collections": my_collections,
+        "location_shared": bool(collector_lat and collector_lon),
     }
     return render(request, "reciclAI/collector_dashboard.html", context)
 
@@ -207,7 +263,7 @@ def accept_collection(request, collection_id):
 
     collection = get_object_or_404(Collection, id=collection_id)
 
-    if collection.status != "SOLICITADA":
+    if collection.status != "SOLICITTA":
         messages.error(request, "Esta coleta não está mais disponível.")
         return redirect("reciclAI:collector_dashboard")
 

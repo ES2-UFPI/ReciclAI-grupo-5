@@ -32,8 +32,12 @@ class CustomUserCreationForm(UserCreationForm):
 
 
 class ResidueForm(forms.ModelForm):
-    latitude = forms.DecimalField(widget=forms.HiddenInput())
-    longitude = forms.DecimalField(widget=forms.HiddenInput())
+    latitude = forms.DecimalField(
+        required=True, widget=forms.HiddenInput(attrs={"required": "true"})
+    )
+    longitude = forms.DecimalField(
+        required=True, widget=forms.HiddenInput(attrs={"required": "true"})
+    )
     collection_date = forms.DateField(
         label="Data para Coleta",
         widget=forms.DateInput(attrs={"type": "date"}),
@@ -42,7 +46,14 @@ class ResidueForm(forms.ModelForm):
 
     class Meta:
         model = Residue
-        fields = ["residue_type", "weight", "units", "collection_date"]
+        fields = [
+            "residue_type",
+            "weight",
+            "units",
+            "collection_date",
+            "latitude",
+            "longitude",
+        ]
         labels = {
             "residue_type": "Tipo de Resíduo",
             "weight": "Peso (kg)",
@@ -57,6 +68,8 @@ class ResidueForm(forms.ModelForm):
         cleaned_data = super().clean()
         weight = cleaned_data.get("weight")
         units = cleaned_data.get("units")
+        latitude = cleaned_data.get("latitude")
+        longitude = cleaned_data.get("longitude")
 
         if not weight and not units:
             raise forms.ValidationError(
@@ -68,6 +81,11 @@ class ResidueForm(forms.ModelForm):
 
         if units is not None and units <= 0:
             self.add_error("units", "A quantidade de unidades deve ser maior que zero.")
+
+        if not latitude or not longitude:
+            raise forms.ValidationError(
+                "Você deve selecionar um ponto no mapa para a coleta."
+            )
 
         return cleaned_data
 

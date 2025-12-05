@@ -67,25 +67,17 @@
 </div>
 {% endblock %}
 
-{% block extra_js %}
-<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+{% block extra_scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Insira sua chave de API do Mapbox aqui
-    const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoicmVjaWNsYWkiLCJhIjoiY2x4d3k2d3gwMGR2eDJrcW1yMGg3cnl0eSJ9.57s-D-8d-z-8-g';
-
     // Coordenadas iniciais (ex: centro de uma cidade)
     const initialCoords = [-23.5505, -46.6333];
 
     const map = L.map('map').setView(initialCoords, 13);
 
-    L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
-        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
-        maxZoom: 18,
-        id: 'mapbox/streets-v11',
-        tileSize: 512,
-        zoomOffset: -1,
-        accessToken: MAPBOX_ACCESS_TOKEN
+    // Usando OpenStreetMap - não requer chave de API
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
     let marker;
@@ -93,19 +85,15 @@ document.addEventListener('DOMContentLoaded', function() {
     map.on('click', function(e) {
         const { lat, lng } = e.latlng;
         
-        // Remove o marcador anterior, se existir
         if (marker) {
             map.removeLayer(marker);
         }
         
-        // Adiciona um novo marcador no local do clique
         marker = L.marker([lat, lng]).addTo(map);
         
-        // Atualiza os campos ocultos do formulário com as coordenadas
         document.getElementById('id_latitude').value = lat.toFixed(6);
         document.getElementById('id_longitude').value = lng.toFixed(6);
 
-        // Opcional: Anima o scroll para o botão de submit para melhor UX
         document.querySelector('button[type="submit"]').scrollIntoView({ behavior: 'smooth' });
     });
 
@@ -120,4 +108,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-{% endblock %}
+{% endblock extra_scripts %}
