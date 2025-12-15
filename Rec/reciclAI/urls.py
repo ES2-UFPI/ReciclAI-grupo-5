@@ -5,6 +5,7 @@ app_name = "reciclAI"
 
 urlpatterns = [
     # --- Rotas Públicas e de Autenticação ---
+    
     path("", views.public_index, name="public_index"),
     path("signup/", views.signup, name="signup"),
     path("dashboard/", views.dashboard, name="dashboard"),
@@ -31,6 +32,7 @@ urlpatterns = [
         views.collection_transition,
         name="collection_transition",
     ),
+    path("coletor/historico/", views.historico_coletas, name="historico_coletas"),
     # --- Fluxo da Recicladora ---
     path("recicladora/dashboard/", views.recycler_dashboard, name="recycler_dashboard"),
     path(

@@ -137,30 +137,67 @@ class CollectorFlowTest(TestCase):
         self.assertLess(sorted_collections[0].distance, sorted_collections[1].distance)
 
 class HistoricoColetasTest(TestCase):
-    def setUp(self):
-        # Cria um usuário coletor para o teste
-        self.user = User.objects.create_user(username='coletor1', password='password123')
-        self.client = Client()
-        self.client.login(username='coletor1', password='password123')
+     # O setUp só cria os usuários e dados principais.
 
-        # Cria dados fictícios de coleta para testar o rendimento
-        Collection.objects.create(coletor=self.user, quantidade=10, valor=50.00, data='2023-10-01')
-        Collection.objects.create(coletor=self.user, quantidade=5, valor=25.00, data='2023-10-02')
+    def setUp(self):
+        self.client = Client()
+
+        # 2. Cria usuários necessários
+        self.citizen_user = User.objects.create_user(username='cidadao', password='password123')
+        # Perfil pode já ter sido criado pelo signal — atualiza ou obtém em vez de criar
+        Profile.objects.update_or_create(user=self.citizen_user, defaults={'user_type': 'C'})
+
+        self.collector_user = User.objects.create_user(username='coletor_teste', password='password123')
+        Profile.objects.update_or_create(user=self.collector_user, defaults={'user_type': 'L'})
+
+        self.client.login(username='coletor_teste', password='password123')
+
+        # 4. Cria dados de cenário (Coletas do coletor principal)
+        # Cenário A
+        residue_1 = Residue.objects.create(
+            citizen=self.citizen_user, residue_type="Vidro", weight=10.0, status="COLETADA"
+        )
+        Collection.objects.create(
+            residue=residue_1, collector=self.collector_user, payment_amount=50.00, status="COLETADA"
+        )
+
+        # Cenário B
+        residue_2 = Residue.objects.create(
+            citizen=self.citizen_user, residue_type="Plástico", weight=5.0, status="COLETADA"
+        )
+        Collection.objects.create(
+            residue=residue_2, collector=self.collector_user, payment_amount=25.50, status="COLETADA"
+        )
+
 
     def test_acesso_historico_coletas(self):
-        """Teste se a página carrega e mostra o rendimento correto"""
-        # Tenta acessar a URL (que ainda não criamos)
-        response = self.client.get(reverse('historico_coletas'))
+        """Teste se a página carrega, mostra as coletas do usuário e soma o rendimento corretamente"""
         
-        # Verifica se o status é 200 (Sucesso)
-        self.assertEqual(response.status_code, 200)
+        # 1. Cria o usuário adicional necessário APENAS para este teste
+        other_collector = User.objects.create_user(username='outro_coletor_aqui', password='password123')
+        # Evita criar duplicado caso o signal já tenha criado o Profile
+        Profile.objects.update_or_create(user=other_collector, defaults={'user_type': 'L'})
         
-        # Verifica se o template correto está sendo usado
-        self.assertTemplateUsed(response, 'reciclAI/historico_coletas.html')
+        # 2. Cria a coleta do outro coletor
+        residue_3 = Residue.objects.create(
+            citizen=self.citizen_user, residue_type="Metal", status="COLETADA"
+        )
+        Collection.objects.create(
+            residue=residue_3, collector=other_collector, payment_amount=100.00, status="COLETADA"
+        )
+
+        # 3. Executa a ação (GET na página)
+        response = self.client.get(reverse('reciclAI:historico_coletas'))
+
+        # 4. Verifica se a página carregou
+        self.assertEqual(response.status_code, 200, "A página deveria retornar status 200 (OK)")
         
-        # Verifica se o contexto contém as coletas e o total
-        self.assertIn('coletas', response.context)
-        self.assertIn('total_rendimento', response.context)
-        
-        # Verifica se o cálculo do rendimento está correto (50 + 25 = 75)
-        self.assertEqual(response.context['total_rendimento'], 75.00)
+        # 5. TESTE PRINCIPAL: Verifica a matemática (75.50)
+        self.assertEqual(
+            float(response.context['total_rendimento']), 
+            75.50, 
+            "O cálculo do rendimento total está incorreto."
+        )
+
+        # 6. Verifica a contagem
+        self.assertEqual(len(response.context['coletas']), 2, "Deveriam aparecer exatamente 2 coletas para este usuário.")
