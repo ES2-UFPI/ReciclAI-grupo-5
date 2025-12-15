@@ -135,3 +135,32 @@ class CollectorFlowTest(TestCase):
         self.assertTrue(hasattr(sorted_collections[0], "distance"))
         self.assertIsInstance(sorted_collections[0].distance, float)
         self.assertLess(sorted_collections[0].distance, sorted_collections[1].distance)
+
+class HistoricoColetasTest(TestCase):
+    def setUp(self):
+        # Cria um usuário coletor para o teste
+        self.user = User.objects.create_user(username='coletor1', password='password123')
+        self.client = Client()
+        self.client.login(username='coletor1', password='password123')
+
+        # Cria dados fictícios de coleta para testar o rendimento
+        Collection.objects.create(coletor=self.user, quantidade=10, valor=50.00, data='2023-10-01')
+        Collection.objects.create(coletor=self.user, quantidade=5, valor=25.00, data='2023-10-02')
+
+    def test_acesso_historico_coletas(self):
+        """Teste se a página carrega e mostra o rendimento correto"""
+        # Tenta acessar a URL (que ainda não criamos)
+        response = self.client.get(reverse('historico_coletas'))
+        
+        # Verifica se o status é 200 (Sucesso)
+        self.assertEqual(response.status_code, 200)
+        
+        # Verifica se o template correto está sendo usado
+        self.assertTemplateUsed(response, 'reciclAI/historico_coletas.html')
+        
+        # Verifica se o contexto contém as coletas e o total
+        self.assertIn('coletas', response.context)
+        self.assertIn('total_rendimento', response.context)
+        
+        # Verifica se o cálculo do rendimento está correto (50 + 25 = 75)
+        self.assertEqual(response.context['total_rendimento'], 75.00)
