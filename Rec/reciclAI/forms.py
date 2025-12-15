@@ -32,20 +32,20 @@ class CustomUserCreationForm(UserCreationForm):
 
 
 class ResidueForm(forms.ModelForm):
-    collection_date = forms.DateField(
-        label="Data para Coleta (Opcional)",
-        widget=forms.DateInput(attrs={"type": "date"}),
-        required=False,
+    latitude = forms.DecimalField(
+        required=True, widget=forms.HiddenInput(attrs={"required": "true"})
+    )
+    longitude = forms.DecimalField(
+        required=True, widget=forms.HiddenInput(attrs={"required": "true"})
     )
 
     class Meta:
         model = Residue
-        fields = ["residue_type", "weight", "units", "location", "collection_date"]
+        fields = ["residue_type", "weight", "units", "latitude", "longitude"]
         labels = {
             "residue_type": "Tipo de Resíduo",
             "weight": "Peso (kg)",
             "units": "Unidades",
-            "location": "Endereço de Coleta",
         }
         help_texts = {
             "weight": "Informe um valor aproximado.",
@@ -56,6 +56,8 @@ class ResidueForm(forms.ModelForm):
         cleaned_data = super().clean()
         weight = cleaned_data.get("weight")
         units = cleaned_data.get("units")
+        latitude = cleaned_data.get("latitude")
+        longitude = cleaned_data.get("longitude")
 
         if not weight and not units:
             raise forms.ValidationError(
@@ -67,6 +69,11 @@ class ResidueForm(forms.ModelForm):
 
         if units is not None and units <= 0:
             self.add_error("units", "A quantidade de unidades deve ser maior que zero.")
+
+        if not latitude or not longitude:
+            raise forms.ValidationError(
+                "Você deve selecionar um ponto no mapa para a coleta."
+            )
 
         return cleaned_data
 
@@ -91,10 +98,8 @@ class CollectionStatusForm(forms.ModelForm):
 
         current_status = self.instance.status
 
-        # Define as transições permitidas para o status atual
         allowed_transitions = self.STATUS_TRANSITIONS.get(current_status, [])
 
-        # O campo de status só é habilitado se houver transições permitidas
         if allowed_transitions:
             self.fields["status"].choices = [
                 (
@@ -115,7 +120,6 @@ class CollectionStatusForm(forms.ModelForm):
             )
 
     def clean_status(self):
-        # Garante que a transição de status é válida
         current_status = self.instance.status
         next_status = self.cleaned_data.get("status")
 
@@ -123,7 +127,6 @@ class CollectionStatusForm(forms.ModelForm):
             status[0] for status in self.STATUS_TRANSITIONS.get(current_status, [])
         ]
 
-        # Permite que o status atual seja "selecionado" sem alterações
         if next_status == current_status:
             return next_status
 
@@ -135,7 +138,6 @@ class CollectionStatusForm(forms.ModelForm):
         return next_status
 
     def save(self, commit=True):
-        # Atribui o coletor se a transição for de 'SOLICITADA' para 'ATRIBUIDA'
         if (
             self.instance.status == "SOLICITADA"
             and self.cleaned_data.get("status") == "ATRIBUIDA"

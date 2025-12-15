@@ -1,7 +1,18 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Cadastrar Resíduo - {{ block.super }}{% endblock %}
+{% block title %}Solicitar Coleta - {{ block.super }}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<style>
+    #map {
+        height: 400px;
+        border-radius: 8px;
+        margin-top: 20px;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
@@ -9,7 +20,8 @@
         <div class="col-md-8 offset-md-2">
             <div class="card">
                 <div class="card-header">
-                    <h2>Cadastrar Novo Resíduo</h2>
+                    <h2>Solicitar Nova Coleta</h2>
+                    <p>Preencha os dados do resíduo e selecione no mapa o local exato para a coleta.</p>
                 </div>
                 <div class="card-body">
                     <form method="post" novalidate>
@@ -23,7 +35,10 @@
                             </div>
                         {% endif %}
 
-                        {% for field in form %}
+                        {{ form.latitude.as_hidden }}
+                        {{ form.longitude.as_hidden }}
+
+                        {% for field in form.visible_fields %}
                             <div class="mb-3">
                                 <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
                                 {{ field }}
@@ -38,8 +53,10 @@
                             </div>
                         {% endfor %}
                         
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary">Cadastrar Resíduo</button>
+                        <div id="map"></div>
+                        
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary">Solicitar Coleta</button>
                             <a href="{% url 'reciclAI:residue_list' %}" class="btn btn-secondary">Cancelar</a>
                         </div>
                     </form>
@@ -49,3 +66,46 @@
     </div>
 </div>
 {% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Coordenadas iniciais (ex: centro de uma cidade)
+    const initialCoords = [-23.5505, -46.6333];
+
+    const map = L.map('map').setView(initialCoords, 13);
+
+    // Usando OpenStreetMap - não requer chave de API
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    let marker;
+
+    map.on('click', function(e) {
+        const { lat, lng } = e.latlng;
+        
+        if (marker) {
+            map.removeLayer(marker);
+        }
+        
+        marker = L.marker([lat, lng]).addTo(map);
+        
+        document.getElementById('id_latitude').value = lat.toFixed(6);
+        document.getElementById('id_longitude').value = lng.toFixed(6);
+
+        document.querySelector('button[type="submit"]').scrollIntoView({ behavior: 'smooth' });
+    });
+
+    // Tenta obter a localização do usuário para centralizar o mapa
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            const userCoords = [position.coords.latitude, position.coords.longitude];
+            map.setView(userCoords, 15);
+        }, function() {
+            console.warn('Não foi possível obter a geolocalização. O mapa iniciará no local padrão.');
+        });
+    }
+});
+</script>
+{% endblock extra_scripts %}

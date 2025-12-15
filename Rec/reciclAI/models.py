@@ -27,7 +27,6 @@ class Residue(models.Model):
     residue_type = models.CharField(max_length=100)
     weight = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     units = models.IntegerField(null=True, blank=True)
-    location = models.CharField(max_length=255)
     collection_date = models.DateField(null=True, blank=True)
     status = models.CharField(
         max_length=50,
@@ -51,15 +50,18 @@ class Collection(models.Model):
         ("CANCELADA", "Cancelada"),
     )
     residue = models.OneToOneField(Residue, on_delete=models.CASCADE)
-    collector = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, blank=True
-    )
-    status = models.CharField(
-        max_length=50, choices=STATUS_CHOICES, default="SOLICITADA"
-    )
+    collector = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # --- CAMPO ADICIONAL ---
+    payment_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="Valor Ganho")
+    # ---------------------------
+
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default="SOLICITADA")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    processed_at = models.DateTimeField(null=True, blank=True)  # Novo campo
+    processed_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"Coleta para {self.residue.residue_type} - Status: {self.get_status_display()}"

@@ -29,5 +29,5 @@ python manage.py runserver
 5. Rodar testes:
 
 ```powershell
-python manage.py test reciclAI -v 2
+python manage.py test
 ```
