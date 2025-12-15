@@ -38,4 +38,5 @@ urlpatterns = [
         views.process_collection,
         name="process_collection",
     ),
+    path('historico/', views.historico_coletas, name='historico_coletas'),
 ]

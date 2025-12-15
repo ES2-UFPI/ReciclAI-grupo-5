@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Histórico de Coletas</h2>
+    
+    <div class="card mb-3">
+        <div class="card-body">
+            <h4 class="card-title">Rendimento Total</h4>
+            <p class="display-4">R$ {{ total_rendimento|floatformat:2 }}</p>
+        </div>
+    </div>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Tipo de Resíduo</th>
+                <th>Peso (kg)</th>
+                <th>Valor Ganho</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for coleta in coletas %}
+            <tr>
+                <td>{{ coleta.created_at|date:"d/m/Y H:i" }}</td>
+                <td>{{ coleta.residue.residue_type }}</td> <td>{{ coleta.residue.weight }}</td>
+                <td>R$ {{ coleta.payment_amount|floatformat:2 }}</td>
+                <td>{{ coleta.get_status_display }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center">Nenhuma coleta realizada ainda.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

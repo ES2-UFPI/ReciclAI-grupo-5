@@ -8,7 +8,7 @@ from django.contrib import messages
 from django.utils import timezone
 from .models import Residue, Collection, Profile, PointsTransaction, Reward, UserReward
 from .forms import CustomUserCreationForm, ResidueForm, CollectionStatusForm
-from django.db.models import F
+from django.db.models import F, Sum
 from math import radians, sin, cos, sqrt, atan2
 
 # --- Função Auxiliar de Geolocalização ---
@@ -359,3 +359,18 @@ def process_collection(request, collection_id):
 
     context = {"collection": collection}
     return render(request, "reciclAI/process_collection.html", context)
+
+@login_required
+def historico_coletas(request):
+    # Filtra coletas do usuário logado (collector)
+    coletas = Collection.objects.filter(
+        collector=request.user
+    ).order_by('-created_at') # Ordena pela data de criação decrescente
+    
+    # Calcula a soma 'payment_amount'
+    total_rendimento = coletas.aggregate(Sum('payment_amount'))['payment_amount__sum'] or 0.00
+    
+    return render(request, 'reciclAI/historico_coletas.html', {
+        'coletas': coletas,
+        'total_rendimento': total_rendimento
+    })
